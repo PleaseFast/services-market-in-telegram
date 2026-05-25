@@ -1,18 +1,18 @@
 name: doings
 
 x-bot-base: &bot-base
-  build:
-    context: .
-    dockerfile: bots/Dockerfile
-  env_file: .env
-  depends_on:
-    postgres:
-      condition: service_healthy
-    redis:
-      condition: service_started
-    backend:
-      condition: service_started
-  restart: unless-stopped
+ build:
+   context: .
+   dockerfile: bots/Dockerfile
+ env_file: .env
+ depends_on:
+   postgres:
+     condition: service_healthy
+   redis:
+     condition: service_started
+   backend:
+     condition: service_started
+ restart: unless-stopped
 
 services:
   postgres:
@@ -54,16 +54,16 @@ services:
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
   doers_bot:
-    <<: *bot-base
-    command: ["python", "-m", "doers_bot.main"]
+   <<: *bot-base
+   command: ["python", "-m", "doers_bot.main"]
 
   customers_bot:
-    <<: *bot-base
-    command: ["python", "-m", "customers_bot.main"]
+   <<: *bot-base
+   command: ["python", "-m", "customers_bot.main"]
 
   referee_bot:
-    <<: *bot-base
-    command: ["python", "-m", "referee_bot.main"]
+   <<: *bot-base
+   command: ["python", "-m", "referee_bot.main"]
 
   frontend:
     build:

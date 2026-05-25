@@ -28,3 +28,7 @@ docker-data/
 
 # Build
 build/
+
+# # Other
+# .claude/
+# .agents/

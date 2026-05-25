@@ -20,15 +20,16 @@ def upgrade() -> None:
     op.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
     op.execute("CREATE EXTENSION IF NOT EXISTS citext")
 
-    user_role = sa.Enum("specialist", "customer", name="user_role")
-    project_status = sa.Enum(
+    user_role = postgresql.ENUM("specialist", "customer", name="user_role", create_type=False)
+    project_status = postgresql.ENUM(
         "draft", "open", "in_progress", "completed", "archived", "canceled",
         name="project_status",
+        create_type=False
     )
-    application_status = sa.Enum(
-        "pending", "accepted", "rejected", "withdrawn", name="application_status"
+    application_status = postgresql.ENUM(
+        "pending", "accepted", "rejected", "withdrawn", name="application_status", create_type=False
     )
-    chat_party = sa.Enum("customer", "specialist", name="chat_party")
+    chat_party = postgresql.ENUM("customer", "specialist", name="chat_party", create_type=False)
 
     user_role.create(op.get_bind(), checkfirst=True)
     project_status.create(op.get_bind(), checkfirst=True)
