@@ -1,0 +1,86 @@
+name: doings
+
+x-bot-base: &bot-base
+  build:
+    context: .
+    dockerfile: bots/Dockerfile
+  env_file: .env
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_started
+    backend:
+      condition: service_started
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-doings}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-doings}
+      POSTGRES_DB: ${POSTGRES_DB:-doings}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-doings}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: .env
+    environment:
+      RUN_MIGRATIONS_ON_START: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  doers_bot:
+    <<: *bot-base
+    command: ["python", "-m", "doers_bot.main"]
+
+  customers_bot:
+    <<: *bot-base
+    command: ["python", "-m", "customers_bot.main"]
+
+  referee_bot:
+    <<: *bot-base
+    command: ["python", "-m", "referee_bot.main"]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
+
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      - backend
+      - frontend
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+
+volumes:
+  pg-data:
