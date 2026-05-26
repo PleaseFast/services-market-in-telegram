@@ -6,6 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useApply, useProject } from "@/features/projects/api";
 import { formatDate } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth";
+import { GuestPrompt } from "@/components/GuestPrompt";
 
 export function ProjectDetailSpecialist() {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +16,7 @@ export function ProjectDetailSpecialist() {
   const [cover, setCover] = useState("");
   const [done, setDone] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const isGuest = useAuthStore((s) => s.isGuest);
 
   if (isLoading) return <p className="text-muted-foreground text-sm">Loading…</p>;
   if (!project) return <p>Project not found.</p>;
@@ -35,7 +38,11 @@ export function ProjectDetailSpecialist() {
         <CardContent className="whitespace-pre-wrap text-sm">{project.description}</CardContent>
       </Card>
 
-      {project.status === "open" && !done && (
+      {isGuest && project.status === "open" && (
+        <GuestPrompt action="apply to this project" />
+      )}
+
+      {!isGuest && project.status === "open" && !done && (
         <Card>
           <CardHeader>
             <CardTitle>Apply</CardTitle>

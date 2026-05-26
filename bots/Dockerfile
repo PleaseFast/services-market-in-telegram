@@ -15,9 +15,9 @@ WORKDIR /app
 COPY backend /app/backend
 RUN pip install --upgrade pip && pip install -e /app/backend
 
-# Then bots
+# Then bots — installed as aiogram deps only; the `bots` package is reachable via PYTHONPATH=/app
 COPY bots /app/bots
-RUN pip install -e /app/bots
+RUN pip install aiogram>=3.10
 
-ENV PYTHONPATH=/app/backend:/app/bots
+ENV PYTHONPATH=/app:/app/backend
 WORKDIR /app/bots

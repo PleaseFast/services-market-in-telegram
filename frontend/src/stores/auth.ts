@@ -13,8 +13,11 @@ interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   user: AuthUser | null;
+  isGuest: boolean;
   setTokens: (a: string, r: string) => void;
   setUser: (u: AuthUser | null) => void;
+  enterGuest: () => void;
+  exitGuest: () => void;
   logout: () => void;
 }
 
@@ -24,9 +27,14 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       user: null,
-      setTokens: (a, r) => set({ accessToken: a, refreshToken: r }),
-      setUser: (u) => set({ user: u }),
-      logout: () => set({ accessToken: null, refreshToken: null, user: null }),
+      isGuest: false,
+      setTokens: (a, r) => set({ accessToken: a, refreshToken: r, isGuest: false }),
+      setUser: (u) => set({ user: u, isGuest: u ? false : false }),
+      enterGuest: () =>
+        set({ accessToken: null, refreshToken: null, user: null, isGuest: true }),
+      exitGuest: () => set({ isGuest: false }),
+      logout: () =>
+        set({ accessToken: null, refreshToken: null, user: null, isGuest: false }),
     }),
     { name: "doings-auth" },
   ),

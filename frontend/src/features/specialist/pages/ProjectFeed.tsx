@@ -5,15 +5,19 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { usePublicFeed } from "@/features/projects/api";
 import { formatDate } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth";
 
 export function ProjectFeed() {
   const [q, setQ] = useState("");
   const { data, isLoading } = usePublicFeed(q || undefined);
+  const isGuest = useAuthStore((s) => s.isGuest);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">Open projects</h1>
+        <h1 className="text-2xl font-semibold">
+          {isGuest ? "Browse open projects" : "Open projects"}
+        </h1>
         <Input
           placeholder="Filter by category…"
           value={q}

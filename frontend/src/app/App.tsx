@@ -13,8 +13,8 @@ const queryClient = new QueryClient({
 async function bootstrapTelegramAuth() {
   const initData = getInitData();
   if (!initData) return;
-  const { accessToken, setTokens, setUser } = useAuthStore.getState();
-  if (accessToken) return;
+  const { accessToken, isGuest, setTokens, setUser } = useAuthStore.getState();
+  if (accessToken || isGuest) return;
   try {
     const tokens = await http.post<{ access_token: string; refresh_token: string }>(
       "/auth/telegram",

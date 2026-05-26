@@ -1,10 +1,11 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuthStore } from "@/stores/auth";
 
 export function LandingPage() {
-  const { user } = useAuthStore();
+  const { user, enterGuest } = useAuthStore();
+  const nav = useNavigate();
   return (
     <div className="space-y-12 py-8">
       <section className="text-center space-y-4">
@@ -28,9 +29,23 @@ export function LandingPage() {
               <Button asChild variant="outline">
                 <Link to="/login">Sign in</Link>
               </Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  enterGuest();
+                  nav("/s/feed");
+                }}
+              >
+                Continue as guest
+              </Button>
             </>
           )}
         </div>
+        {!user && (
+          <p className="text-xs text-muted-foreground">
+            Guests can browse open projects. Applying, chatting, and posting projects require an account.
+          </p>
+        )}
       </section>
 
       <section className="grid md:grid-cols-3 gap-4">

@@ -32,6 +32,14 @@ function RequireAuth({ role }: { role?: "specialist" | "customer" }) {
   return <Outlet />;
 }
 
+function AllowGuestOrSpecialist() {
+  const { user, accessToken, isGuest } = useAuthStore();
+  if (isGuest) return <Outlet />;
+  if (!accessToken || !user) return <Navigate to="/login" replace />;
+  if (user.role !== "specialist") return <Navigate to="/" replace />;
+  return <Outlet />;
+}
+
 export const router = createBrowserRouter([
   {
     element: <Shell />,
@@ -41,11 +49,16 @@ export const router = createBrowserRouter([
       { path: "register", element: <RegisterPage /> },
 
       {
+        element: <AllowGuestOrSpecialist />,
+        children: [
+          { path: "s/feed", element: <ProjectFeed /> },
+          { path: "s/projects/:id", element: <ProjectDetailSpecialist /> },
+        ],
+      },
+      {
         element: <RequireAuth role="specialist" />,
         children: [
           { path: "s", element: <SpecialistDashboard /> },
-          { path: "s/feed", element: <ProjectFeed /> },
-          { path: "s/projects/:id", element: <ProjectDetailSpecialist /> },
           { path: "s/profile", element: <SpecialistProfilePage /> },
           { path: "s/archive", element: <SpecialistArchive /> },
         ],

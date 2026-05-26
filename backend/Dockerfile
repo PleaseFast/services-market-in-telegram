@@ -11,12 +11,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Install backend dependencies
-COPY backend/pyproject.toml /app/backend/pyproject.toml
+# Copy backend source first, then install editable (so setuptools finds the `app` package)
+COPY backend /app/backend
 RUN pip install --upgrade pip && \
     pip install -e /app/backend[dev]
 
-COPY backend /app/backend
 ENV PYTHONPATH=/app/backend
 
 # Entrypoint optionally runs migrations
