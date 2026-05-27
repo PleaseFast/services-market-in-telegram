@@ -1,11 +1,11 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, BadgeCheck, MessageSquareText, Sparkles, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/stores/auth";
 import { useTemplates, usePublicFeed } from "@/features/projects/api";
-import type { ProjectTemplate } from "@/features/projects/types";
+import { groupByCategory } from "@/lib/templates";
 import { cn } from "@/lib/utils";
 
 const FEATURES = [
@@ -31,12 +31,15 @@ const FEATURES = [
   },
 ];
 
+const LANDING_VISIBLE_PER_CATEGORY = 6;
+
 export function LandingPage() {
   const nav = useNavigate();
   const { user, isGuest, enterGuest } = useAuthStore();
   const { data: templates } = useTemplates();
   const { data: feed } = usePublicFeed();
   const [q, setQ] = useState("");
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const grouped = useMemo(() => groupByCategory(templates ?? []), [templates]);
   const openProjectCount = feed?.total ?? 0;
@@ -127,43 +130,45 @@ export function LandingPage() {
       {/* CATEGORY GRID */}
       {grouped.length > 0 && (
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-10 gap-y-10">
-          {grouped.map(({ category, items }) => (
-            <div key={category} className="space-y-3">
-              <div className="flex items-baseline gap-2">
-                <h3 className="font-semibold">{category}</h3>
-                <span className="text-xs text-muted-foreground">{items.length}</span>
+          {grouped.map(({ category, items }) => {
+            const isExpanded = expanded[category] ?? false;
+            const visible = isExpanded ? items : items.slice(0, LANDING_VISIBLE_PER_CATEGORY);
+            const hidden = items.length - visible.length;
+            return (
+              <div key={category} className="space-y-3">
+                <div className="flex items-baseline gap-2">
+                  <h3 className="font-semibold">{category}</h3>
+                  <span className="text-xs text-muted-foreground">{items.length}</span>
+                </div>
+                <ul className="space-y-1.5">
+                  {visible.map((t) => (
+                    <li key={t.id}>
+                      <Link
+                        to={`/c/new?template_id=${t.id}`}
+                        className={cn(
+                          "text-sm text-muted-foreground hover:text-foreground",
+                          "hover:underline underline-offset-4",
+                        )}
+                      >
+                        {t.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                {items.length > LANDING_VISIBLE_PER_CATEGORY && (
+                  <button
+                    type="button"
+                    onClick={() => setExpanded((s) => ({ ...s, [category]: !isExpanded }))}
+                    className="text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+                  >
+                    {isExpanded ? "Show less" : `Show ${hidden} more`}
+                  </button>
+                )}
               </div>
-              <ul className="space-y-1.5">
-                {items.map((t) => (
-                  <li key={t.id}>
-                    <Link
-                      to={`/c/new?template_id=${t.id}`}
-                      className={cn(
-                        "text-sm text-muted-foreground hover:text-foreground",
-                        "hover:underline underline-offset-4",
-                      )}
-                    >
-                      {t.title}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+            );
+          })}
         </section>
       )}
     </div>
   );
-}
-
-function groupByCategory(
-  templates: ProjectTemplate[],
-): { category: string; items: ProjectTemplate[] }[] {
-  const map = new Map<string, ProjectTemplate[]>();
-  for (const t of templates) {
-    const arr = map.get(t.category) ?? [];
-    arr.push(t);
-    map.set(t.category, arr);
-  }
-  return Array.from(map.entries()).map(([category, items]) => ({ category, items }));
 }

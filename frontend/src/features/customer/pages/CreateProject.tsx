@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,15 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useCreateProject, useTemplates } from "@/features/projects/api";
 import { useAuthStore } from "@/stores/auth";
+import { groupByCategory } from "@/lib/templates";
 import {
   clearPendingProject,
   loadPendingProject,
   savePendingProject,
   type PendingProjectValues,
 } from "@/lib/pendingProject";
+import type { ProjectTemplate } from "@/features/projects/types";
 
 const schema = z.object({
   title: z.string().min(4, "At least 4 characters"),
@@ -29,6 +30,8 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+const DEFAULT_VISIBLE_PER_CATEGORY = 3;
+
 export function CreateProject() {
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -38,11 +41,13 @@ export function CreateProject() {
   const isAuthed = !!accessToken && !!user;
   const [err, setErr] = useState<string | null>(null);
   const autosubmitFiredRef = useRef(false);
+  const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
 
   const {
     register,
     handleSubmit,
     setValue,
+    getValues,
     watch,
     reset,
     formState: { errors, isSubmitting },
@@ -52,6 +57,59 @@ export function CreateProject() {
   });
 
   const templateId = watch("template_id");
+  const descriptionValue = watch("description") ?? "";
+
+  const [suggestedBrief, setSuggestedBrief] = useState<string | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+
+  const grouped = useMemo(() => groupByCategory(templates ?? []), [templates]);
+
+  // RHF's register handles the textarea ref via {...register("description")}; we
+  // also need our own ref for focusing after accepting the suggestion. Compose
+  // both into one ref callback.
+  const descriptionRegister = register("description");
+  const setDescriptionRef = useCallback(
+    (node: HTMLTextAreaElement | null) => {
+      descriptionRef.current = node;
+      descriptionRegister.ref(node);
+    },
+    [descriptionRegister],
+  );
+
+  function pickTemplate(t: ProjectTemplate) {
+    setValue("template_id", t.id, { shouldDirty: true });
+    // Only fill the title when the user hasn't typed their own. Keeps their
+    // manual edits when they cycle through templates for inspiration.
+    if (!getValues("title")?.trim()) {
+      setValue("title", t.title, { shouldDirty: true });
+    }
+    setSuggestedBrief(t.description_template);
+  }
+
+  function acceptSuggestion() {
+    if (!suggestedBrief) return;
+    setValue("description", suggestedBrief, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    // Move the cursor to the end and refocus.
+    requestAnimationFrame(() => {
+      const node = descriptionRef.current;
+      if (!node) return;
+      node.focus();
+      const end = node.value.length;
+      node.setSelectionRange(end, end);
+    });
+  }
+
+  function handleDescriptionKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key !== "Tab") return;
+    if (e.shiftKey || e.altKey || e.metaKey || e.ctrlKey) return;
+    if (!suggestedBrief) return;
+    if ((e.currentTarget.value ?? "").length > 0) return;
+    e.preventDefault();
+    acceptSuggestion();
+  }
 
   // Apply ?template_id from the URL (used by the landing page category grid).
   useEffect(() => {
@@ -60,9 +118,11 @@ export function CreateProject() {
     const t = templates.find((x) => x.id === tid);
     if (!t) return;
     setValue("template_id", t.id);
-    setValue("title", t.title);
-    setValue("description", t.description_template);
-  }, [params, templates, setValue]);
+    if (!getValues("title")?.trim()) {
+      setValue("title", t.title);
+    }
+    setSuggestedBrief(t.description_template);
+  }, [params, templates, setValue, getValues]);
 
   // Rehydrate pending form from sessionStorage on mount.
   useEffect(() => {
@@ -188,6 +248,8 @@ export function CreateProject() {
     );
   }
 
+  const showSuggestion = suggestedBrief !== null && descriptionValue.trim() === "";
+
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       {!isAuthed && (
@@ -210,25 +272,49 @@ export function CreateProject() {
           <CardDescription>Start from a popular request, or skip and describe your own.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {templates?.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => {
-                  setValue("template_id", t.id);
-                  setValue("title", t.title);
-                  setValue("description", t.description_template);
-                }}
-                className={
-                  templateId === t.id
-                    ? "rounded-full border px-3 py-1 text-xs bg-primary text-primary-foreground border-primary"
-                    : "rounded-full border px-3 py-1 text-xs hover:bg-muted"
-                }
-              >
-                {t.title} <Badge tone="outline" className="ml-1">{t.category}</Badge>
-              </button>
-            ))}
+          <div className="space-y-5">
+            {grouped.map(({ category, items }) => {
+              const expanded = expandedCategories[category] ?? false;
+              const visible = expanded ? items : items.slice(0, DEFAULT_VISIBLE_PER_CATEGORY);
+              const hiddenCount = items.length - visible.length;
+              return (
+                <div key={category} className="space-y-2">
+                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    {category}
+                    <span className="ml-2 text-muted-foreground/60 normal-case tracking-normal">
+                      {items.length}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {visible.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => pickTemplate(t)}
+                        className={
+                          templateId === t.id
+                            ? "rounded-full border px-3 py-1 text-xs bg-primary text-primary-foreground border-primary"
+                            : "rounded-full border px-3 py-1 text-xs hover:bg-muted"
+                        }
+                      >
+                        {t.title}
+                      </button>
+                    ))}
+                    {items.length > DEFAULT_VISIBLE_PER_CATEGORY && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedCategories((s) => ({ ...s, [category]: !expanded }))
+                        }
+                        className="rounded-full border border-dashed px-3 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                      >
+                        {expanded ? "Show less" : `+${hiddenCount} more`}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -246,7 +332,27 @@ export function CreateProject() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="description">Details</Label>
-              <Textarea id="description" rows={8} {...register("description")} />
+              <Textarea
+                id="description"
+                rows={8}
+                {...descriptionRegister}
+                ref={setDescriptionRef}
+                onKeyDown={handleDescriptionKeyDown}
+              />
+              {showSuggestion && (
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={acceptSuggestion}
+                    className="rounded-full border px-3 py-1 text-xs hover:bg-muted"
+                  >
+                    Insert suggested brief
+                  </button>
+                  <span className="text-xs text-muted-foreground">
+                    or press <kbd className="rounded border px-1 py-px text-[10px] font-medium">Tab</kbd>
+                  </span>
+                </div>
+              )}
               {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
             </div>
             <div className="grid grid-cols-3 gap-4">
