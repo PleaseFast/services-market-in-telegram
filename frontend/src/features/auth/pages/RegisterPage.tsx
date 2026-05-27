@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { register as registerApi } from "../api";
+import { useAuthStore } from "@/stores/auth";
 
 const schema = z.object({
   email: z.string().email(),
@@ -30,6 +31,7 @@ export function RegisterPage() {
   const next = safeNext(params.get("next"));
   const lockedRole = params.get("role");
   const isRoleLocked = lockedRole === "customer" || lockedRole === "specialist";
+  const enterGuest = useAuthStore((s) => s.enterGuest);
 
   const [err, setErr] = useState<string | null>(null);
   const {
@@ -43,6 +45,13 @@ export function RegisterPage() {
     defaultValues: { role: isRoleLocked ? (lockedRole as "customer" | "specialist") : "customer" },
   });
   const role = watch("role");
+  // The guest path is offered only inside the specialist auth flow — either
+  // the role is locked to specialist (came from the "For specialists" header
+  // entry point) or the user has actively picked "Specialist" in the role
+  // selector. Customers don't browse anonymously here.
+  const showGuestOption = isRoleLocked
+    ? lockedRole === "specialist"
+    : role === "specialist";
 
   useEffect(() => {
     if (isRoleLocked) setValue("role", lockedRole as "customer" | "specialist");
@@ -132,6 +141,23 @@ export function RegisterPage() {
               </Link>
             </p>
           </form>
+          {showGuestOption && (
+            <div className="mt-6 pt-5 border-t text-center space-y-1">
+              <p className="text-sm text-muted-foreground">
+                Not ready to sign up?
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  enterGuest();
+                  nav("/s/feed");
+                }}
+                className="text-sm font-medium text-foreground underline underline-offset-4 hover:opacity-80"
+              >
+                Browse projects as a guest
+              </button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

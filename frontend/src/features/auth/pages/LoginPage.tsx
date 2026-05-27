@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { login } from "../api";
+import { useAuthStore } from "@/stores/auth";
 
 const schema = z.object({
   email: z.string().email(),
@@ -26,6 +27,11 @@ export function LoginPage() {
   const nav = useNavigate();
   const [params] = useSearchParams();
   const next = safeNext(params.get("next"));
+  // The guest path surfaces only when the visitor is in the specialist auth
+  // flow — they arrived here from "For specialists" (or the register page's
+  // sign-in link, which preserves the role param).
+  const showGuestOption = params.get("role") === "specialist";
+  const enterGuest = useAuthStore((s) => s.enterGuest);
   const [err, setErr] = useState<string | null>(null);
   const {
     register,
@@ -83,6 +89,23 @@ export function LoginPage() {
               </Link>
             </p>
           </form>
+          {showGuestOption && (
+            <div className="mt-6 pt-5 border-t text-center space-y-1">
+              <p className="text-sm text-muted-foreground">
+                Not ready to sign in?
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  enterGuest();
+                  nav("/s/feed");
+                }}
+                className="text-sm font-medium text-foreground underline underline-offset-4 hover:opacity-80"
+              >
+                Browse projects as a guest
+              </button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

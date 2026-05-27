@@ -151,6 +151,24 @@ export function CreateProject() {
     }
   }, [reset]);
 
+  // Apply ?title= from the URL — used by the landing-page search input, which
+  // routes here as a "start a project request" entry point. Precedence:
+  //   1. ?template_id wins (full template context-switch handled above).
+  //   2. A rehydrated pending draft with a title wins (user already has work).
+  //   3. Otherwise, prefill the title from ?title= and strip it from the URL
+  //      so it doesn't re-apply on later navigation.
+  useEffect(() => {
+    const t = params.get("title");
+    if (!t) return;
+    if (params.get("template_id")) return;
+    const pending = loadPendingProject();
+    if (pending && (pending.values.title ?? "").length > 0) return;
+    setValue("title", t, { shouldDirty: true, shouldValidate: true });
+    const next = new URLSearchParams(params);
+    next.delete("title");
+    setParams(next, { replace: true });
+  }, [params, setParams, setValue]);
+
   // Detach the template when the user edits the inherited title. Runs after
   // every title or template_id change; only fires the detach when there is a
   // template attached AND the current title no longer matches what the

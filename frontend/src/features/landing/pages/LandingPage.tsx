@@ -35,7 +35,7 @@ const LANDING_VISIBLE_PER_CATEGORY = 6;
 
 export function LandingPage() {
   const nav = useNavigate();
-  const { user, isGuest, enterGuest } = useAuthStore();
+  const { user } = useAuthStore();
   const { data: templates } = useTemplates();
   const { data: feed } = usePublicFeed();
   const [q, setQ] = useState("");
@@ -44,9 +44,14 @@ export function LandingPage() {
   const grouped = useMemo(() => groupByCategory(templates ?? []), [templates]);
   const openProjectCount = feed?.total ?? 0;
 
+  // The landing search is a quick "start a project request" entry point:
+  // route into the (anonymous-allowed) create-project page with the query as
+  // the prefilled title. From there, the existing delayed-auth flow handles
+  // publishing — unauthenticated visitors only hit the auth wall when they
+  // click Publish, and authenticated customers land on the form pre-populated.
   function submitSearch() {
     const trimmed = q.trim();
-    nav(trimmed ? `/s/feed?q=${encodeURIComponent(trimmed)}` : "/s/feed");
+    nav(trimmed ? `/c/new?title=${encodeURIComponent(trimmed)}` : "/c/new");
   }
 
   return (
@@ -84,25 +89,12 @@ export function LandingPage() {
               <Link to={user.role === "customer" ? "/c" : "/s"}>Open dashboard</Link>
             </Button>
           ) : (
-            <>
-              <Button asChild>
-                <Link to="/c/new">Post a project</Link>
-              </Button>
-              {!isGuest && (
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    enterGuest();
-                    nav("/s/feed");
-                  }}
-                >
-                  Continue as guest
-                </Button>
-              )}
-              <Link to="/register?role=specialist" className="text-muted-foreground hover:text-foreground underline-offset-4 hover:underline">
-                I&apos;m a specialist
-              </Link>
-            </>
+            <Link
+              to="/register?role=specialist"
+              className="text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+            >
+              I&apos;m a specialist
+            </Link>
           )}
         </div>
       </section>
