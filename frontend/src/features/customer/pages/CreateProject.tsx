@@ -42,6 +42,11 @@ export function CreateProject() {
   const [err, setErr] = useState<string | null>(null);
   const autosubmitFiredRef = useRef(false);
   const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
+  // Tracks the title we last wrote on the user's behalf from a template. If
+  // the title field ever diverges from this value while a template is
+  // attached, we treat that as the user customizing the project and detach
+  // the template (clear template_id + suggested brief).
+  const templateAppliedTitleRef = useRef<string | null>(null);
 
   const {
     register,
@@ -56,6 +61,7 @@ export function CreateProject() {
   });
 
   const templateId = watch("template_id");
+  const titleValue = watch("title") ?? "";
   const descriptionValue = watch("description") ?? "";
 
   const [suggestedBrief, setSuggestedBrief] = useState<string | null>(null);
@@ -81,6 +87,11 @@ export function CreateProject() {
     // fully cleared so the previous template's brief (or any manual text)
     // doesn't bleed into the new context. The suggestion flow then re-arms
     // automatically because the textarea is empty again.
+    //
+    // We also stamp the just-applied title into a ref. The detach effect
+    // below uses it to tell "this title came from a template" apart from
+    // "the user edited the title", and clears template_id on user edits.
+    templateAppliedTitleRef.current = t.title;
     setValue("template_id", t.id, { shouldDirty: true });
     setValue("title", t.title, { shouldDirty: true, shouldValidate: true });
     setValue("description", "", { shouldDirty: true, shouldValidate: false });
@@ -119,6 +130,7 @@ export function CreateProject() {
     if (!tid || !templates) return;
     const t = templates.find((x) => x.id === tid);
     if (!t) return;
+    templateAppliedTitleRef.current = t.title;
     setValue("template_id", t.id);
     setValue("title", t.title);
     setValue("description", "");
@@ -130,8 +142,28 @@ export function CreateProject() {
     const pending = loadPendingProject();
     if (pending) {
       reset({ ...pending.values });
+      // If the rehydrated draft is attached to a template, treat its title as
+      // the template-applied title so editing it correctly detaches the
+      // template (rather than detaching immediately on mount).
+      if (pending.values.template_id) {
+        templateAppliedTitleRef.current = pending.values.title ?? null;
+      }
     }
   }, [reset]);
+
+  // Detach the template when the user edits the inherited title. Runs after
+  // every title or template_id change; only fires the detach when there is a
+  // template attached AND the current title no longer matches what the
+  // template put there.
+  useEffect(() => {
+    if (!templateId) return;
+    if (titleValue === templateAppliedTitleRef.current) return;
+    templateAppliedTitleRef.current = null;
+    setValue("template_id", undefined, { shouldDirty: true });
+    // The brief suggestion is meaningful only while the project is attached
+    // to the template that produced it; once we detach, drop the suggestion.
+    setSuggestedBrief(null);
+  }, [titleValue, templateId, setValue]);
 
   // Auto-submit after returning from auth, if intent was publish.
   useEffect(() => {
