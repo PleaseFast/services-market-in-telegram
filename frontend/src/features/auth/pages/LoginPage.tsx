@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,8 +16,16 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+function safeNext(raw: string | null): string | null {
+  if (!raw) return null;
+  if (!raw.startsWith("/") || raw.startsWith("//")) return null;
+  return raw;
+}
+
 export function LoginPage() {
   const nav = useNavigate();
+  const [params] = useSearchParams();
+  const next = safeNext(params.get("next"));
   const [err, setErr] = useState<string | null>(null);
   const {
     register,
@@ -29,26 +37,37 @@ export function LoginPage() {
     setErr(null);
     try {
       const me = await login(values.email, values.password);
+      if (next) {
+        const fwd = new URLSearchParams();
+        for (const [k, v] of params.entries()) {
+          if (k !== "next" && k !== "role") fwd.set(k, v);
+        }
+        const sep = next.includes("?") ? "&" : "?";
+        nav(fwd.toString() ? `${next}${sep}${fwd.toString()}` : next);
+        return;
+      }
       nav(me.role === "customer" ? "/c" : "/s");
     } catch (e: unknown) {
       setErr((e as Error).message);
     }
   }
 
+  const signUpHref = `/register${params.toString() ? `?${params.toString()}` : ""}`;
+
   return (
-    <div className="max-w-md mx-auto pt-8">
-      <Card>
+    <div className="max-w-md mx-auto pt-12">
+      <Card className="border-0 shadow-none md:border md:shadow-sm">
         <CardHeader>
-          <CardTitle>Sign in</CardTitle>
+          <CardTitle className="text-2xl">Sign in</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-1">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" {...register("email")} />
               {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" {...register("password")} />
               {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
@@ -58,7 +77,10 @@ export function LoginPage() {
               {isSubmitting ? "Signing in…" : "Sign in"}
             </Button>
             <p className="text-sm text-muted-foreground text-center">
-              No account? <Link to="/register" className="text-primary underline-offset-4 hover:underline">Create one</Link>
+              No account?{" "}
+              <Link to={signUpHref} className="text-foreground underline-offset-4 hover:underline">
+                Create one
+              </Link>
             </p>
           </form>
         </CardContent>

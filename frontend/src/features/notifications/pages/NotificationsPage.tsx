@@ -24,9 +24,9 @@ export function NotificationsPage() {
   });
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
-      <h1 className="text-2xl font-semibold">Notifications</h1>
-      <div className="space-y-2">
+    <div className="max-w-2xl mx-auto space-y-6">
+      <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Notifications</h1>
+      <div className="space-y-3">
         {data?.length === 0 && (
           <p className="text-muted-foreground text-sm">Nothing yet — quiet day.</p>
         )}
@@ -34,8 +34,8 @@ export function NotificationsPage() {
           <Card key={n.id}>
             <CardHeader>
               <div className="flex justify-between items-center gap-2">
-                <CardTitle className="text-base">{prettyType(n.type)}</CardTitle>
-                {!n.read_at && <Badge tone="primary">new</Badge>}
+                <CardTitle className="text-sm font-medium">{prettyType(n.type)}</CardTitle>
+                {!n.read_at && <Badge tone="outline">new</Badge>}
               </div>
             </CardHeader>
             <CardContent className="flex justify-between items-center">

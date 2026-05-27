@@ -9,11 +9,13 @@ export function SpecialistDashboard() {
   const { data: mine } = useMySpecialistProjects();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Dashboard</h1>
+
       {profile === null && (
         <Card>
           <CardHeader>
-            <CardTitle>Finish your profile</CardTitle>
+            <CardTitle className="text-base font-medium">Finish your profile</CardTitle>
             <CardDescription>You need a profile before you can apply to projects.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -27,7 +29,7 @@ export function SpecialistDashboard() {
       <div className="grid md:grid-cols-3 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>Browse projects</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Browse projects</CardTitle>
             <CardDescription>Find new opportunities matching your skills.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -38,7 +40,7 @@ export function SpecialistDashboard() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Active projects</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Active projects</CardTitle>
             <CardDescription>{mine?.items.length ?? 0} engaged</CardDescription>
           </CardHeader>
           <CardContent>
@@ -61,10 +63,10 @@ export function SpecialistDashboard() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Your rating</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Your rating</CardTitle>
             <CardDescription>Built from customer reviews</CardDescription>
           </CardHeader>
-          <CardContent className="text-3xl font-semibold">
+          <CardContent className="text-3xl font-semibold tracking-tight">
             {profile ? `${Number(profile.rating_avg).toFixed(2)} ★` : "—"}
           </CardContent>
         </Card>

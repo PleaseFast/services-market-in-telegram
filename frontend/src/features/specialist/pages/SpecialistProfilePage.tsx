@@ -60,13 +60,14 @@ export function SpecialistProfilePage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto space-y-6">
+      <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Your profile</h1>
       <Card>
         <CardHeader>
-          <CardTitle>Your specialist profile</CardTitle>
+          <CardTitle className="text-base font-medium">Specialist details</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-1">
               <Label htmlFor="full_name">Full name</Label>
               <Input id="full_name" {...register("full_name")} />

@@ -1,8 +1,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,8 +17,20 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+function safeNext(raw: string | null): string | null {
+  if (!raw) return null;
+  // Only accept same-origin relative paths to avoid open-redirect.
+  if (!raw.startsWith("/") || raw.startsWith("//")) return null;
+  return raw;
+}
+
 export function RegisterPage() {
   const nav = useNavigate();
+  const [params] = useSearchParams();
+  const next = safeNext(params.get("next"));
+  const lockedRole = params.get("role");
+  const isRoleLocked = lockedRole === "customer" || lockedRole === "specialist";
+
   const [err, setErr] = useState<string | null>(null);
   const {
     register,
@@ -28,50 +40,83 @@ export function RegisterPage() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { role: "customer" },
+    defaultValues: { role: isRoleLocked ? (lockedRole as "customer" | "specialist") : "customer" },
   });
   const role = watch("role");
+
+  useEffect(() => {
+    if (isRoleLocked) setValue("role", lockedRole as "customer" | "specialist");
+  }, [isRoleLocked, lockedRole, setValue]);
 
   async function onSubmit(values: FormValues) {
     setErr(null);
     try {
-      const me = await registerApi(values.email, values.password, values.role);
+      const me = await registerApi(
+        values.email,
+        values.password,
+        isRoleLocked ? (lockedRole as "customer" | "specialist") : values.role,
+      );
+      if (next) {
+        // Forward search params (autosubmit, etc.) onto the destination.
+        const fwd = new URLSearchParams();
+        for (const [k, v] of params.entries()) {
+          if (k !== "next" && k !== "role") fwd.set(k, v);
+        }
+        const sep = next.includes("?") ? "&" : "?";
+        nav(fwd.toString() ? `${next}${sep}${fwd.toString()}` : next);
+        return;
+      }
       nav(me.role === "customer" ? "/c" : "/s/profile");
     } catch (e: unknown) {
       setErr((e as Error).message);
     }
   }
 
+  // Preserve search params on the "Sign in" link so the auth context isn't lost.
+  const signInHref = `/login${params.toString() ? `?${params.toString()}` : ""}`;
+
   return (
-    <div className="max-w-md mx-auto pt-8">
-      <Card>
+    <div className="max-w-md mx-auto pt-12">
+      <Card className="border-0 shadow-none md:border md:shadow-sm">
         <CardHeader>
-          <CardTitle>Create your account</CardTitle>
+          <CardTitle className="text-2xl">Create your account</CardTitle>
+          {isRoleLocked && lockedRole === "customer" && (
+            <p className="text-sm text-muted-foreground">
+              You're publishing a project — we&apos;ll create a customer account so you can manage it.
+            </p>
+          )}
+          {isRoleLocked && lockedRole === "specialist" && (
+            <p className="text-sm text-muted-foreground">
+              Set up your specialist account to apply to projects.
+            </p>
+          )}
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-1">
-              <Label>I am a…</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {(["customer", "specialist"] as const).map((r) => (
-                  <Button
-                    type="button"
-                    key={r}
-                    variant={role === r ? "default" : "outline"}
-                    onClick={() => setValue("role", r)}
-                  >
-                    {r === "customer" ? "Customer" : "Specialist"}
-                  </Button>
-                ))}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {!isRoleLocked && (
+              <div className="space-y-1.5">
+                <Label>I am a…</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["customer", "specialist"] as const).map((r) => (
+                    <Button
+                      type="button"
+                      key={r}
+                      variant={role === r ? "default" : "outline"}
+                      onClick={() => setValue("role", r)}
+                    >
+                      {r === "customer" ? "Customer" : "Specialist"}
+                    </Button>
+                  ))}
+                </div>
+                <input type="hidden" {...register("role")} />
               </div>
-              <input type="hidden" {...register("role")} />
-            </div>
-            <div className="space-y-1">
+            )}
+            <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" {...register("email")} />
               {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" {...register("password")} />
               {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
@@ -81,7 +126,10 @@ export function RegisterPage() {
               {isSubmitting ? "Creating…" : "Create account"}
             </Button>
             <p className="text-sm text-muted-foreground text-center">
-              Already have one? <Link to="/login" className="text-primary underline-offset-4 hover:underline">Sign in</Link>
+              Already have one?{" "}
+              <Link to={signInHref} className="text-foreground underline-offset-4 hover:underline">
+                Sign in
+              </Link>
             </p>
           </form>
         </CardContent>

@@ -22,20 +22,24 @@ export function ProjectDetailSpecialist() {
   if (!project) return <p>Project not found.</p>;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-8">
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start gap-2">
             <div>
-              <CardTitle>{project.title}</CardTitle>
+              <CardTitle className="text-xl font-semibold tracking-tight">
+                {project.title}
+              </CardTitle>
               <CardDescription>
                 Budget: {project.budget} {project.currency} · Deadline: {formatDate(project.deadline)}
               </CardDescription>
             </div>
-            <Badge tone="primary">{project.status}</Badge>
+            <Badge tone="outline">{project.status}</Badge>
           </div>
         </CardHeader>
-        <CardContent className="whitespace-pre-wrap text-sm">{project.description}</CardContent>
+        <CardContent className="whitespace-pre-wrap text-sm leading-relaxed">
+          {project.description}
+        </CardContent>
       </Card>
 
       {isGuest && project.status === "open" && (

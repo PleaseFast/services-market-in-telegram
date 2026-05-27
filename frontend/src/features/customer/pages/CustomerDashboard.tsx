@@ -11,9 +11,9 @@ export function CustomerDashboard() {
   const active = data?.items.filter((p) => p.status === "in_progress") ?? [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Welcome back</h1>
+    <div className="space-y-8">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Welcome back</h1>
         <Button asChild>
           <Link to="/c/new">+ New project</Link>
         </Button>
@@ -27,7 +27,7 @@ export function CustomerDashboard() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent</CardTitle>
+          <CardTitle className="text-base font-medium">Recent</CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="divide-y">
@@ -55,20 +55,20 @@ function SummaryCard({ title, count, link }: { title: string; count: number; lin
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
         <CardDescription>
-          <Link to={link} className="hover:underline">
+          <Link to={link} className="hover:text-foreground hover:underline underline-offset-4">
             View all
           </Link>
         </CardDescription>
       </CardHeader>
-      <CardContent className="text-3xl font-semibold">{count}</CardContent>
+      <CardContent className="text-3xl font-semibold tracking-tight">{count}</CardContent>
     </Card>
   );
 }
 
 function statusTone(s: string): "default" | "primary" | "success" | "warning" | "outline" {
-  if (s === "open") return "primary";
+  if (s === "open") return "outline";
   if (s === "in_progress") return "success";
   if (s === "completed") return "success";
   if (s === "draft") return "warning";

@@ -40,6 +40,18 @@ function AllowGuestOrSpecialist() {
   return <Outlet />;
 }
 
+/**
+ * Delayed-auth guard for /c/new: anonymous visitors and authenticated
+ * customers can both view the form. Authenticated specialists are
+ * redirected away — they don't post projects.
+ */
+function AllowAnonymousOrCustomer() {
+  const { user, accessToken } = useAuthStore();
+  if (!accessToken || !user) return <Outlet />; // anonymous OK
+  if (user.role === "customer") return <Outlet />;
+  return <Navigate to="/s" replace />;
+}
+
 export const router = createBrowserRouter([
   {
     element: <Shell />,
@@ -65,10 +77,13 @@ export const router = createBrowserRouter([
       },
 
       {
+        element: <AllowAnonymousOrCustomer />,
+        children: [{ path: "c/new", element: <CreateProject /> }],
+      },
+      {
         element: <RequireAuth role="customer" />,
         children: [
           { path: "c", element: <CustomerDashboard /> },
-          { path: "c/new", element: <CreateProject /> },
           { path: "c/projects", element: <CustomerProjects /> },
           { path: "c/projects/:id", element: <CustomerProjectDetail /> },
           { path: "c/specialists", element: <SpecialistsCatalog /> },

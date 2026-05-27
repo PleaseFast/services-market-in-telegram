@@ -16,11 +16,11 @@ export function SpecialistsCatalog() {
   });
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">Specialists</h1>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center flex-wrap gap-3">
+        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Specialists</h1>
         <Input
-          className="max-w-xs"
+          className="max-w-xs rounded-xl"
           placeholder="Filter by category…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -29,9 +29,9 @@ export function SpecialistsCatalog() {
       {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
       <div className="grid md:grid-cols-2 gap-4">
         {data?.items.map((s) => (
-          <Card key={s.id}>
+          <Card key={s.id} className="hover:border-foreground/30 transition-colors">
             <CardHeader>
-              <CardTitle>{s.full_name}</CardTitle>
+              <CardTitle className="text-base font-medium">{s.full_name}</CardTitle>
               <CardDescription>
                 {s.category} · {s.years_experience}y · ⭐ {Number(s.rating_avg).toFixed(2)} ({s.rating_count})
               </CardDescription>

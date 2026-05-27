@@ -26,21 +26,23 @@ export function CustomerProjectDetail() {
   if (!project) return <p className="text-muted-foreground text-sm">Loading…</p>;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-8">
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start gap-2">
             <div>
-              <CardTitle>{project.title}</CardTitle>
+              <CardTitle className="text-xl font-semibold tracking-tight">
+                {project.title}
+              </CardTitle>
               <CardDescription>
                 Budget: {project.budget} {project.currency} · Deadline: {formatDate(project.deadline)}
               </CardDescription>
             </div>
-            <Badge tone="primary">{project.status}</Badge>
+            <Badge tone="outline">{project.status}</Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="whitespace-pre-wrap text-sm">{project.description}</p>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">{project.description}</p>
           <div className="flex flex-wrap gap-2">
             {project.status === "draft" && (
               <Button onClick={() => publish.mutate(project.id)} disabled={publish.isPending}>
@@ -64,7 +66,7 @@ export function CustomerProjectDetail() {
       {project.status === "open" && (
         <Card>
           <CardHeader>
-            <CardTitle>Applicants ({applicants?.length ?? 0})</CardTitle>
+            <CardTitle className="text-base font-medium">Applicants ({applicants?.length ?? 0})</CardTitle>
             <CardDescription>
               Open RefereeBot in Telegram to chat anonymously, then come back here to select.
             </CardDescription>
