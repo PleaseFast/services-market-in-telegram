@@ -47,7 +47,6 @@ export function CreateProject() {
     register,
     handleSubmit,
     setValue,
-    getValues,
     watch,
     reset,
     formState: { errors, isSubmitting },
@@ -77,12 +76,14 @@ export function CreateProject() {
   );
 
   function pickTemplate(t: ProjectTemplate) {
+    // Picking a template means switching project context entirely: title is
+    // always replaced with the template title, and the Details textarea is
+    // fully cleared so the previous template's brief (or any manual text)
+    // doesn't bleed into the new context. The suggestion flow then re-arms
+    // automatically because the textarea is empty again.
     setValue("template_id", t.id, { shouldDirty: true });
-    // Only fill the title when the user hasn't typed their own. Keeps their
-    // manual edits when they cycle through templates for inspiration.
-    if (!getValues("title")?.trim()) {
-      setValue("title", t.title, { shouldDirty: true });
-    }
+    setValue("title", t.title, { shouldDirty: true, shouldValidate: true });
+    setValue("description", "", { shouldDirty: true, shouldValidate: false });
     setSuggestedBrief(t.description_template);
   }
 
@@ -112,17 +113,17 @@ export function CreateProject() {
   }
 
   // Apply ?template_id from the URL (used by the landing page category grid).
+  // Same context-switch semantics as picking a template inline.
   useEffect(() => {
     const tid = params.get("template_id");
     if (!tid || !templates) return;
     const t = templates.find((x) => x.id === tid);
     if (!t) return;
     setValue("template_id", t.id);
-    if (!getValues("title")?.trim()) {
-      setValue("title", t.title);
-    }
+    setValue("title", t.title);
+    setValue("description", "");
     setSuggestedBrief(t.description_template);
-  }, [params, templates, setValue, getValues]);
+  }, [params, templates, setValue]);
 
   // Rehydrate pending form from sessionStorage on mount.
   useEffect(() => {
@@ -268,59 +269,6 @@ export function CreateProject() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">Pick a template (optional)</CardTitle>
-          <CardDescription>Start from a popular request, or skip and describe your own.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-5">
-            {grouped.map(({ category, items }) => {
-              const expanded = expandedCategories[category] ?? false;
-              const visible = expanded ? items : items.slice(0, DEFAULT_VISIBLE_PER_CATEGORY);
-              const hiddenCount = items.length - visible.length;
-              return (
-                <div key={category} className="space-y-2">
-                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    {category}
-                    <span className="ml-2 text-muted-foreground/60 normal-case tracking-normal">
-                      {items.length}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {visible.map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => pickTemplate(t)}
-                        className={
-                          templateId === t.id
-                            ? "rounded-full border px-3 py-1 text-xs bg-primary text-primary-foreground border-primary"
-                            : "rounded-full border px-3 py-1 text-xs hover:bg-muted"
-                        }
-                      >
-                        {t.title}
-                      </button>
-                    ))}
-                    {items.length > DEFAULT_VISIBLE_PER_CATEGORY && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setExpandedCategories((s) => ({ ...s, [category]: !expanded }))
-                        }
-                        className="rounded-full border border-dashed px-3 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-                      >
-                        {expanded ? "Show less" : `+${hiddenCount} more`}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle className="text-base font-medium">Describe your project</CardTitle>
         </CardHeader>
         <CardContent>
@@ -388,6 +336,59 @@ export function CreateProject() {
               </Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-medium">Pick a template (optional)</CardTitle>
+          <CardDescription>Need a starting point? Picking a template replaces your title and clears the brief so you can start from a popular request.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-5">
+            {grouped.map(({ category, items }) => {
+              const expanded = expandedCategories[category] ?? false;
+              const visible = expanded ? items : items.slice(0, DEFAULT_VISIBLE_PER_CATEGORY);
+              const hiddenCount = items.length - visible.length;
+              return (
+                <div key={category} className="space-y-2">
+                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    {category}
+                    <span className="ml-2 text-muted-foreground/60 normal-case tracking-normal">
+                      {items.length}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {visible.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => pickTemplate(t)}
+                        className={
+                          templateId === t.id
+                            ? "rounded-full border px-3 py-1 text-xs bg-primary text-primary-foreground border-primary"
+                            : "rounded-full border px-3 py-1 text-xs hover:bg-muted"
+                        }
+                      >
+                        {t.title}
+                      </button>
+                    ))}
+                    {items.length > DEFAULT_VISIBLE_PER_CATEGORY && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedCategories((s) => ({ ...s, [category]: !expanded }))
+                        }
+                        className="rounded-full border border-dashed px-3 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                      >
+                        {expanded ? "Show less" : `+${hiddenCount} more`}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
     </div>
