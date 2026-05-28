@@ -103,7 +103,7 @@ async def test_feed_is_scoped_to_specialist_profile_category(client):
         headers=_auth(specialist),
         json={
             "full_name": "Pat", "age": 28, "category": "Backend",
-            "years_experience": 3, "bio": "", "workplaces": [], "portfolio_links": [],
+            "years_experience": 3, "bio": "",
         },
     )
     assert r.status_code == 200, r.text
@@ -140,7 +140,7 @@ async def test_sort_viewed_bubbles_visited_projects_to_top(client):
         headers=_auth(specialist),
         json={
             "full_name": "View", "age": 28, "category": "Backend",
-            "years_experience": 3, "bio": "", "workplaces": [], "portfolio_links": [],
+            "years_experience": 3, "bio": "",
         },
     )
 

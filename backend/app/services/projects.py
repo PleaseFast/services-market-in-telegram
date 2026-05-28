@@ -38,6 +38,10 @@ async def create_project(session: AsyncSession, user: User, data: ProjectIn) -> 
     )
     session.add(project)
     await session.commit()
+    # ``onupdate=func.now()`` marks ``updated_at`` as expired post-UPDATE;
+    # refresh so the sync ORM-read path (Pydantic model_validate) doesn't try
+    # to lazy-load and trip MissingGreenlet.
+    await session.refresh(project)
     return project
 
 
@@ -73,6 +77,10 @@ async def update_project(session: AsyncSession, user: User, project_id: UUID, pa
     for field, value in patch.model_dump(exclude_unset=True).items():
         setattr(project, field, value)
     await session.commit()
+    # ``onupdate=func.now()`` marks ``updated_at`` as expired post-UPDATE;
+    # refresh so the sync ORM-read path (Pydantic model_validate) doesn't try
+    # to lazy-load and trip MissingGreenlet.
+    await session.refresh(project)
     return project
 
 
@@ -82,6 +90,10 @@ async def publish_project(session: AsyncSession, user: User, project_id: UUID) -
         raise ConflictError("Only draft projects can be published")
     project.status = ProjectStatus.OPEN
     await session.commit()
+    # ``onupdate=func.now()`` marks ``updated_at`` as expired post-UPDATE;
+    # refresh so the sync ORM-read path (Pydantic model_validate) doesn't try
+    # to lazy-load and trip MissingGreenlet.
+    await session.refresh(project)
     return project
 
 
@@ -145,6 +157,10 @@ async def select_specialist(
         {"project_id": str(project_id), "specialist_id": str(specialist_id)},
     )
     await session.commit()
+    # ``onupdate=func.now()`` marks ``updated_at`` as expired post-UPDATE;
+    # refresh so the sync ORM-read path (Pydantic model_validate) doesn't try
+    # to lazy-load and trip MissingGreenlet.
+    await session.refresh(project)
     return project
 
 
@@ -161,6 +177,10 @@ async def complete_project(session: AsyncSession, user: User, project_id: UUID) 
             {"project_id": str(project.id), "title": project.title},
         )
     await session.commit()
+    # ``onupdate=func.now()`` marks ``updated_at`` as expired post-UPDATE;
+    # refresh so the sync ORM-read path (Pydantic model_validate) doesn't try
+    # to lazy-load and trip MissingGreenlet.
+    await session.refresh(project)
     return project
 
 
@@ -170,6 +190,10 @@ async def archive_project(session: AsyncSession, user: User, project_id: UUID) -
         raise ConflictError("Only completed/canceled projects can be archived")
     project.status = ProjectStatus.ARCHIVED
     await session.commit()
+    # ``onupdate=func.now()`` marks ``updated_at`` as expired post-UPDATE;
+    # refresh so the sync ORM-read path (Pydantic model_validate) doesn't try
+    # to lazy-load and trip MissingGreenlet.
+    await session.refresh(project)
     return project
 
 
@@ -179,6 +203,10 @@ async def cancel_project(session: AsyncSession, user: User, project_id: UUID) ->
         raise ConflictError("Only draft/open projects can be canceled")
     project.status = ProjectStatus.CANCELED
     await session.commit()
+    # ``onupdate=func.now()`` marks ``updated_at`` as expired post-UPDATE;
+    # refresh so the sync ORM-read path (Pydantic model_validate) doesn't try
+    # to lazy-load and trip MissingGreenlet.
+    await session.refresh(project)
     return project
 
 

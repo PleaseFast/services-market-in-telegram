@@ -9,8 +9,10 @@ from sqlalchemy import select
 
 from app.core.db import SessionLocal
 from app.core.security import hash_password
+from app.core.service_catalog import SERVICE_CATALOG
 from app.models.profile import CustomerProfile, SpecialistProfile
 from app.models.project import ProjectTemplate
+from app.models.service_catalog import ServiceCatalogItem
 from app.models.user import User, UserRole
 from app.seed.templates import PROJECT_TEMPLATES
 
@@ -39,6 +41,26 @@ async def _seed_templates(session) -> None:
         )
         new += 1
     log.info("Seeded %s project templates", new)
+
+
+async def _seed_service_catalog(session) -> None:
+    existing = await session.execute(select(ServiceCatalogItem.slug))
+    seen = {row[0] for row in existing.all()}
+    new = 0
+    for position, entry in enumerate(SERVICE_CATALOG):
+        if entry.slug in seen:
+            continue
+        session.add(
+            ServiceCatalogItem(
+                slug=entry.slug,
+                category=entry.category,
+                subcategory=entry.subcategory,
+                label=entry.label,
+                position=position,
+            )
+        )
+        new += 1
+    log.info("Seeded %s service catalog items", new)
 
 
 async def _seed_demo_users(session) -> None:
@@ -80,6 +102,7 @@ async def _seed_demo_users(session) -> None:
 async def main() -> None:
     async with SessionLocal() as session:
         await _seed_templates(session)
+        await _seed_service_catalog(session)
         await _seed_demo_users(session)
         await session.commit()
     log.info("Seed complete.")

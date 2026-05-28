@@ -36,6 +36,15 @@ export interface Page<T> {
   offset: number;
 }
 
+export interface SpecialistPreview {
+  user_id: string;
+  full_name: string;
+  avatar_id: string;
+  category: string;
+  rating_avg: number;
+  rating_count: number;
+}
+
 export interface Application {
   id: string;
   project_id: string;
@@ -43,6 +52,41 @@ export interface Application {
   cover_letter: string | null;
   status: "pending" | "accepted" | "rejected" | "withdrawn";
   created_at: string;
+  specialist?: SpecialistPreview | null;
+}
+
+export type TimelineKind = "work" | "education" | "achievement";
+
+export interface TimelineItem {
+  id: string;
+  profile_id: string;
+  kind: TimelineKind;
+  title: string;
+  description: string;
+  start_year: number;
+  end_year: number | null;
+  is_current: boolean;
+  position: number;
+}
+
+export interface SpecialistService {
+  service_id: string;
+  slug: string;
+  category: string;
+  subcategory: string;
+  label: string;
+  price_amount: string;
+  price_currency: string;
+  position: number;
+}
+
+export interface ServiceCatalogItem {
+  id: string;
+  slug: string;
+  category: string;
+  subcategory: string;
+  label: string;
+  position: number;
 }
 
 export interface SpecialistProfile {
@@ -53,9 +97,24 @@ export interface SpecialistProfile {
   category: string;
   years_experience: number;
   bio: string;
-  avatar_url: string | null;
+  avatar_id: string;
   rating_avg: string;
   rating_count: number;
-  workplaces: { id: string; title: string; company: string; period: string | null }[];
-  portfolio_links: { id: string; url: string; label: string | null }[];
+  timeline: {
+    work: TimelineItem[];
+    education: TimelineItem[];
+    achievement: TimelineItem[];
+  };
+  services: SpecialistService[];
+}
+
+export interface Review {
+  id: string;
+  project_id: string;
+  project_title: string;
+  author_id: string;
+  subject_id: string;
+  rating: number;
+  text: string | null;
+  created_at: string;
 }

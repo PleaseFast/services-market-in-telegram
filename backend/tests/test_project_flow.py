@@ -29,8 +29,6 @@ async def test_full_project_lifecycle(client):
             "category": "Backend",
             "years_experience": 7,
             "bio": "fixer of bugs",
-            "workplaces": [],
-            "portfolio_links": [],
         },
     )
     assert r.status_code == 200

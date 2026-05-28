@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Avatar } from "@/components/avatar/Avatar";
 import { useMyProfile } from "../api";
 import { useMySpecialistProjects } from "@/features/projects/api";
 
@@ -10,7 +11,17 @@ export function SpecialistDashboard() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Dashboard</h1>
+      <div className="flex items-center gap-4">
+        {profile && <Avatar avatarId={profile.avatar_id} size="lg" />}
+        <div className="min-w-0">
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Dashboard</h1>
+          {profile && (
+            <p className="text-sm text-muted-foreground">
+              {profile.full_name} · {profile.category}
+            </p>
+          )}
+        </div>
+      </div>
 
       {profile === null && (
         <Card>

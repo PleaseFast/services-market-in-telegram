@@ -2,12 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.profile import (
-    CustomerProfile,
-    SpecialistPortfolioLink,
-    SpecialistProfile,
-    SpecialistWorkplace,
-)
+from app.models.profile import CustomerProfile, SpecialistProfile
 from app.models.user import User, UserRole
 from app.repositories.specialists import get_profile_by_user
 from app.schemas.profile import CustomerProfileIn, SpecialistProfileIn
@@ -29,26 +24,16 @@ async def upsert_specialist_profile(
             category=data.category,
             years_experience=data.years_experience,
             bio=data.bio,
-            avatar_url=data.avatar_url,
+            avatar_id=data.avatar_id,
         )
         session.add(profile)
-        await session.flush()
     else:
         profile.full_name = data.full_name
         profile.age = data.age
         profile.category = data.category
         profile.years_experience = data.years_experience
         profile.bio = data.bio
-        profile.avatar_url = data.avatar_url
-        # rewrite related lists for simplicity (small lists)
-        profile.workplaces.clear()
-        profile.portfolio_links.clear()
-        await session.flush()
-
-    for w in data.workplaces:
-        session.add(SpecialistWorkplace(profile_id=profile.id, title=w.title, company=w.company, period=w.period))
-    for link in data.portfolio_links:
-        session.add(SpecialistPortfolioLink(profile_id=profile.id, url=str(link.url), label=link.label))
+        profile.avatar_id = data.avatar_id
 
     await session.commit()
     return await get_profile_by_user(session, user.id)  # type: ignore[return-value]
@@ -61,11 +46,13 @@ async def upsert_customer_profile(
         raise ForbiddenError("Only customers can manage a customer profile")
     profile = user.customer_profile
     if profile is None:
-        profile = CustomerProfile(user_id=user.id, display_name=data.display_name, avatar_url=data.avatar_url)
+        profile = CustomerProfile(
+            user_id=user.id, display_name=data.display_name, avatar_id=data.avatar_id
+        )
         session.add(profile)
     else:
         profile.display_name = data.display_name
-        profile.avatar_url = data.avatar_url
+        profile.avatar_id = data.avatar_id
     await session.commit()
     return profile
 

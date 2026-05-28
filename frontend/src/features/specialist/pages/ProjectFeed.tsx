@@ -119,7 +119,7 @@ export function ProjectFeed() {
   const budgetInputs = (
     <>
       <Input
-        placeholder="Min"
+        placeholder="Min $"
         type="number"
         min={0}
         value={minInput}
@@ -129,7 +129,7 @@ export function ProjectFeed() {
         aria-label="Minimum budget"
       />
       <Input
-        placeholder="Max"
+        placeholder="Max $"
         type="number"
         min={0}
         value={maxInput}

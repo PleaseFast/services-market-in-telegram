@@ -1,7 +1,8 @@
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar } from "@/components/avatar/Avatar";
 import {
   useApplicants,
   useArchiveProject,
@@ -68,23 +69,41 @@ export function CustomerProjectDetail() {
           <CardHeader>
             <CardTitle className="text-base font-medium">Applicants ({applicants?.length ?? 0})</CardTitle>
             <CardDescription>
-              Open RefereeBot in Telegram to chat anonymously, then come back here to select.
+              Tap a specialist to view their full profile, or pick one to start the project.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="divide-y">
-              {applicants?.map((a, idx) => (
-                <li key={a.id} className="py-3 flex justify-between items-start gap-4">
-                  <div>
-                    <p className="font-medium">Anonymous specialist #{idx + 1}</p>
-                    {a.cover_letter && (
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap mt-1">
-                        {a.cover_letter}
+              {applicants?.map((a) => (
+                <li
+                  key={a.id}
+                  className="py-3 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3"
+                >
+                  <Link
+                    to={`/specialists/${a.specialist_id}`}
+                    className="flex items-start gap-3 flex-1 min-w-0 group"
+                  >
+                    <Avatar avatarId={a.specialist?.avatar_id} size="md" />
+                    <div className="min-w-0">
+                      <p className="font-medium group-hover:underline underline-offset-2">
+                        {a.specialist?.full_name ?? "Specialist"}
                       </p>
-                    )}
-                  </div>
+                      <p className="text-xs text-muted-foreground">
+                        {a.specialist?.category ?? "—"} ·{" "}
+                        {a.specialist
+                          ? `${a.specialist.rating_avg.toFixed(2)} ★ (${a.specialist.rating_count})`
+                          : "no rating yet"}
+                      </p>
+                      {a.cover_letter && (
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap mt-1">
+                          {a.cover_letter}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
                   <Button
                     size="sm"
+                    className="h-11 sm:h-9 self-start"
                     onClick={() =>
                       select.mutate({ projectId: project.id, specialistId: a.specialist_id })
                     }

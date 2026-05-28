@@ -21,6 +21,9 @@ import { CustomerProjects } from "@/features/customer/pages/CustomerProjects";
 import { CustomerProjectDetail } from "@/features/customer/pages/CustomerProjectDetail";
 import { SpecialistsCatalog } from "@/features/customer/pages/SpecialistsCatalog";
 
+// Public specialist profile
+import { SpecialistProfilePublicPage } from "@/features/specialists/pages/SpecialistProfilePublicPage";
+
 // Shared
 import { NotificationsPage } from "@/features/notifications/pages/NotificationsPage";
 import { NotFoundPage } from "@/features/landing/pages/NotFoundPage";
@@ -59,6 +62,10 @@ export const router = createBrowserRouter([
       { index: true, element: <LandingPage /> },
       { path: "login", element: <LoginPage /> },
       { path: "register", element: <RegisterPage /> },
+
+      // Public specialist profile — accessible to everyone (guests, customers,
+      // and the specialist themselves).
+      { path: "specialists/:id", element: <SpecialistProfilePublicPage /> },
 
       {
         element: <AllowGuestOrSpecialist />,

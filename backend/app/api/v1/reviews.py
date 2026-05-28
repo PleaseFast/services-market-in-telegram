@@ -1,8 +1,10 @@
 from uuid import UUID
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from app.core.deps import CurrentUser, SessionDep
+from app.repositories.projects import get_project
+from app.schemas.common import Page
 from app.schemas.review import ReviewIn, ReviewOut
 from app.services import reviews as svc
 
@@ -14,9 +16,42 @@ async def create(
     project_id: UUID, payload: ReviewIn, user: CurrentUser, session: SessionDep
 ) -> ReviewOut:
     r = await svc.create_review(session, user, project_id, payload.rating, payload.text)
-    return ReviewOut.model_validate(r)
+    project = await get_project(session, project_id)
+    return ReviewOut(
+        id=r.id,
+        project_id=r.project_id,
+        project_title=project.title if project else "",
+        author_id=r.author_id,
+        subject_id=r.subject_id,
+        rating=r.rating,
+        text=r.text,
+        created_at=r.created_at,
+    )
 
 
-@router.get("/users/{user_id}/reviews", response_model=list[ReviewOut])
-async def list_reviews(user_id: UUID, session: SessionDep) -> list[ReviewOut]:
-    return [ReviewOut.model_validate(r) for r in await svc.list_for_subject(session, user_id)]
+@router.get("/users/{user_id}/reviews", response_model=Page[ReviewOut])
+async def list_reviews(
+    user_id: UUID,
+    session: SessionDep,
+    limit: int = Query(default=20, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> Page[ReviewOut]:
+    items, total = await svc.list_for_subject(session, user_id, limit=limit, offset=offset)
+    return Page(
+        items=[
+            ReviewOut(
+                id=r.id,
+                project_id=r.project_id,
+                project_title=title,
+                author_id=r.author_id,
+                subject_id=r.subject_id,
+                rating=r.rating,
+                text=r.text,
+                created_at=r.created_at,
+            )
+            for r, title in items
+        ],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )

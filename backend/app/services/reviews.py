@@ -59,11 +59,28 @@ async def create_review(
     return review
 
 
-async def list_for_subject(session: AsyncSession, subject_id: UUID) -> list[Review]:
-    res = await session.execute(
-        select(Review).where(Review.subject_id == subject_id).order_by(Review.created_at.desc())
+async def list_for_subject(
+    session: AsyncSession,
+    subject_id: UUID,
+    *,
+    limit: int = 20,
+    offset: int = 0,
+) -> tuple[list[tuple[Review, str]], int]:
+    """Return (review, project_title) pairs and the total count for paging.
+
+    Joining Project here keeps the response self-contained — the public
+    reviews block doesn't need a second round-trip per row to fetch titles.
+    """
+    base = (
+        select(Review, Project.title)
+        .join(Project, Project.id == Review.project_id)
+        .where(Review.subject_id == subject_id)
     )
-    return list(res.scalars().all())
+    total = await session.scalar(select(func.count()).select_from(base.order_by(None).subquery()))
+    res = await session.execute(
+        base.order_by(Review.created_at.desc()).limit(limit).offset(offset)
+    )
+    return [(row[0], row[1]) for row in res.all()], int(total or 0)
 
 
 async def _recompute_rating(session: AsyncSession, subject_id: UUID) -> None:

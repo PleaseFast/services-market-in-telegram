@@ -12,13 +12,21 @@ from app.models.profile import SpecialistProfile
 async def get_profile_by_user(session: AsyncSession, user_id: UUID) -> SpecialistProfile | None:
     res = await session.execute(
         select(SpecialistProfile)
-        .options(
-            selectinload(SpecialistProfile.workplaces),
-            selectinload(SpecialistProfile.portfolio_links),
-        )
+        .options(selectinload(SpecialistProfile.timeline_items))
         .where(SpecialistProfile.user_id == user_id)
     )
     return res.scalar_one_or_none()
+
+
+async def get_profiles_by_user_ids(
+    session: AsyncSession, user_ids: list[UUID]
+) -> dict[UUID, SpecialistProfile]:
+    if not user_ids:
+        return {}
+    res = await session.execute(
+        select(SpecialistProfile).where(SpecialistProfile.user_id.in_(user_ids))
+    )
+    return {p.user_id: p for p in res.scalars().all()}
 
 
 async def search_specialists(
@@ -29,8 +37,7 @@ async def search_specialists(
     offset: int = 0,
 ) -> tuple[list[SpecialistProfile], int]:
     stmt = select(SpecialistProfile).options(
-        selectinload(SpecialistProfile.workplaces),
-        selectinload(SpecialistProfile.portfolio_links),
+        selectinload(SpecialistProfile.timeline_items)
     )
     if category:
         stmt = stmt.where(SpecialistProfile.category.ilike(f"%{category}%"))
