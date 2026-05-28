@@ -9,13 +9,34 @@ export function useTemplates() {
   });
 }
 
-export function usePublicFeed(category?: string) {
+export type FeedSort = "newest" | "viewed";
+
+export interface FeedFilters {
+  q?: string;
+  budget_min?: number;
+  budget_max?: number;
+  sort?: FeedSort;
+}
+
+function buildFeedQuery(filters: FeedFilters): string {
+  const params = new URLSearchParams();
+  params.set("limit", "50");
+  if (filters.q && filters.q.trim()) params.set("q", filters.q.trim());
+  if (filters.budget_min !== undefined && !Number.isNaN(filters.budget_min)) {
+    params.set("budget_min", String(filters.budget_min));
+  }
+  if (filters.budget_max !== undefined && !Number.isNaN(filters.budget_max)) {
+    params.set("budget_max", String(filters.budget_max));
+  }
+  if (filters.sort && filters.sort !== "newest") params.set("sort", filters.sort);
+  return params.toString();
+}
+
+export function usePublicFeed(filters: FeedFilters = {}) {
+  const qs = buildFeedQuery(filters);
   return useQuery({
-    queryKey: ["projects", "feed", category],
-    queryFn: () =>
-      http.get<Page<Project>>(
-        `/projects?limit=50${category ? `&category=${encodeURIComponent(category)}` : ""}`,
-      ),
+    queryKey: ["projects", "feed", filters],
+    queryFn: () => http.get<Page<Project>>(`/projects?${qs}`),
   });
 }
 
@@ -56,6 +77,7 @@ interface CreateProjectInput {
   currency?: string;
   deadline?: string | null;
   template_id?: string | null;
+  category?: string | null;
   publish?: boolean;
 }
 

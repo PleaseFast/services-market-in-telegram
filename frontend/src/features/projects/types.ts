@@ -15,6 +15,7 @@ export interface Project {
   currency: string;
   deadline: string | null;
   status: ProjectStatus;
+  category: string;
   selected_specialist_id: string | null;
   template_id: string | null;
   created_at: string;

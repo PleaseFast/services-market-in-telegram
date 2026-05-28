@@ -6,6 +6,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field, HttpUrl
 
 from app.schemas.common import ORMBase
+from app.schemas.project import CategoryLiteral
 
 
 class WorkplaceIn(BaseModel):
@@ -35,7 +36,7 @@ class PortfolioLinkOut(ORMBase):
 class SpecialistProfileIn(BaseModel):
     full_name: str = Field(min_length=2, max_length=120)
     age: int = Field(ge=14, le=120)
-    category: str = Field(min_length=2, max_length=80)
+    category: CategoryLiteral
     years_experience: int = Field(ge=0, le=80)
     bio: str = Field(default="", max_length=4000)
     avatar_url: str | None = Field(default=None, max_length=500)

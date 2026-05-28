@@ -4,8 +4,9 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.categories import clamp_category, suggest_category
 from app.models.application import Application, ApplicationStatus
-from app.models.project import Project, ProjectStatus
+from app.models.project import Project, ProjectStatus, ProjectTemplate
 from app.models.user import User, UserRole
 from app.repositories.projects import get_project
 from app.schemas.project import ProjectIn, ProjectPatch
@@ -20,6 +21,10 @@ def _ensure_customer(user: User) -> None:
 
 async def create_project(session: AsyncSession, user: User, data: ProjectIn) -> Project:
     _ensure_customer(user)
+    category = await _resolve_category(
+        session, template_id=data.template_id, requested=data.category,
+        title=data.title, description=data.description,
+    )
     project = Project(
         customer_id=user.id,
         title=data.title,
@@ -28,11 +33,37 @@ async def create_project(session: AsyncSession, user: User, data: ProjectIn) -> 
         currency=data.currency,
         deadline=data.deadline,
         template_id=data.template_id,
+        category=category,
         status=ProjectStatus.OPEN if data.publish else ProjectStatus.DRAFT,
     )
     session.add(project)
     await session.commit()
     return project
+
+
+async def _resolve_category(
+    session: AsyncSession,
+    *,
+    template_id: UUID | None,
+    requested: str | None,
+    title: str,
+    description: str,
+) -> str:
+    """Pick a category for a newly-created project.
+
+    Precedence:
+      1. ``template_id`` — copy from the template (clamped to closed set).
+      2. ``requested`` — explicit value from the client (already Literal-validated
+         when it arrived, but clamp defensively).
+      3. Keyword-based ``suggest_category`` fallback.
+    """
+    if template_id is not None:
+        tpl = await session.get(ProjectTemplate, template_id)
+        if tpl is not None:
+            return clamp_category(tpl.category)
+    if requested:
+        return clamp_category(requested)
+    return suggest_category(title, description)
 
 
 async def update_project(session: AsyncSession, user: User, project_id: UUID, patch: ProjectPatch) -> Project:

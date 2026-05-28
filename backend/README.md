@@ -50,6 +50,7 @@ users ──< specialist_profiles ──< specialist_workplaces
        │     ├─< reviews
        │     └─< chat_threads ──< messages
        ├─< applications (as specialist_id)
+       ├─< project_views (per-specialist view history; PK = (project_id, user_id))
        └─< notifications
 ```
 

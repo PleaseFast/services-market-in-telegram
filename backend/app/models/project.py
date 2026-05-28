@@ -47,6 +47,9 @@ class Project(UUIDPK, Timestamps, SoftDelete, Base):
     budget: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
     deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
+    category: Mapped[str] = mapped_column(
+        String(40), nullable=False, server_default="Other", default="Other", index=True
+    )
 
     status: Mapped[ProjectStatus] = mapped_column(
         Enum(ProjectStatus, name="project_status", values_callable=lambda e: [m.value for m in e]),

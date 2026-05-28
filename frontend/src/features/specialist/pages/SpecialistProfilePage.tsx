@@ -7,12 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
+import { CATEGORIES, clampCategory } from "@/lib/categories";
 import { useMyProfile, useSaveProfile } from "../api";
 
 const schema = z.object({
   full_name: z.string().min(2),
   age: z.coerce.number().int().min(14).max(120),
-  category: z.string().min(2),
+  category: z.enum(CATEGORIES),
   years_experience: z.coerce.number().int().min(0).max(80),
   bio: z.string().max(4000).default(""),
   avatar_url: z.string().url().optional().or(z.literal("")),
@@ -40,7 +42,7 @@ export function SpecialistProfilePage() {
       reset({
         full_name: profile.full_name,
         age: profile.age,
-        category: profile.category,
+        category: clampCategory(profile.category),
         years_experience: profile.years_experience,
         bio: profile.bio,
         avatar_url: profile.avatar_url ?? "",
@@ -80,7 +82,16 @@ export function SpecialistProfilePage() {
               </div>
               <div className="space-y-1">
                 <Label htmlFor="category">Category</Label>
-                <Input id="category" placeholder="Backend, Frontend, …" {...register("category")} />
+                <Select id="category" {...register("category")}>
+                  {CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </Select>
+                {errors.category && (
+                  <p className="text-xs text-destructive">{errors.category.message}</p>
+                )}
               </div>
               <div className="space-y-1">
                 <Label htmlFor="years_experience">Years experience</Label>

@@ -1,9 +1,13 @@
+from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query
 
-from app.core.deps import CurrentUser, SessionDep
+from app.core.categories import clamp_category
+from app.core.deps import CurrentUser, CurrentUserOptional, SessionDep
 from app.models.project import ProjectStatus
+from app.models.user import UserRole
 from app.repositories.projects import (
     get_project,
     list_open_projects,
@@ -11,6 +15,7 @@ from app.repositories.projects import (
     list_projects_for_specialist,
     list_templates,
 )
+from app.repositories.specialists import get_profile_by_user
 from app.schemas.common import Page
 from app.schemas.project import (
     ProjectIn,
@@ -19,6 +24,7 @@ from app.schemas.project import (
     ProjectTemplateOut,
 )
 from app.services import projects as project_svc
+from app.services.project_views import record_view
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -31,11 +37,43 @@ async def templates(session: SessionDep) -> list[ProjectTemplateOut]:
 @router.get("", response_model=Page[ProjectOut])
 async def public_feed(
     session: SessionDep,
-    category: str | None = Query(default=None),
+    viewer: CurrentUserOptional,
+    q: str | None = Query(default=None, max_length=200),
+    budget_min: Decimal | None = Query(default=None, ge=0),
+    budget_max: Decimal | None = Query(default=None, ge=0),
+    sort: Literal["newest", "viewed"] = Query(default="newest"),
     limit: int = Query(default=20, le=100),
     offset: int = Query(default=0, ge=0),
 ) -> Page[ProjectOut]:
-    items, total = await list_open_projects(session, category=category, limit=limit, offset=offset)
+    """Open-project feed.
+
+    When the viewer is an authenticated specialist with a profile, the feed is
+    automatically scoped to projects matching the specialist's profile category
+    (no per-request category filter is exposed — specialists already chose one
+    on their profile). Guests and customers see the full feed.
+
+    ``sort="viewed"`` requires an authenticated viewer to be meaningful;
+    otherwise it degrades to ``newest``.
+    """
+    viewer_category: str | None = None
+    viewer_user_id: UUID | None = None
+    if viewer is not None and viewer.role == UserRole.SPECIALIST:
+        profile = await get_profile_by_user(session, viewer.id)
+        if profile is not None:
+            viewer_category = clamp_category(profile.category)
+            viewer_user_id = viewer.id
+
+    items, total = await list_open_projects(
+        session,
+        q=q,
+        budget_min=budget_min,
+        budget_max=budget_max,
+        viewer_category=viewer_category,
+        viewer_user_id=viewer_user_id,
+        sort=sort,
+        limit=limit,
+        offset=offset,
+    )
     return Page(
         items=[ProjectOut.model_validate(p) for p in items],
         total=total,
@@ -86,10 +124,24 @@ async def create(payload: ProjectIn, user: CurrentUser, session: SessionDep) -> 
 
 
 @router.get("/{project_id}", response_model=ProjectOut)
-async def detail(project_id: UUID, session: SessionDep) -> ProjectOut:
+async def detail(
+    project_id: UUID,
+    session: SessionDep,
+    viewer: CurrentUserOptional,
+) -> ProjectOut:
     p = await get_project(session, project_id)
     if p is None or p.deleted_at is not None:
         raise HTTPException(404, "Project not found")
+
+    # Best-effort view tracking — only for authenticated specialists who don't
+    # own the project. Failures are swallowed inside record_view.
+    if (
+        viewer is not None
+        and viewer.role == UserRole.SPECIALIST
+        and viewer.id != p.customer_id
+    ):
+        await record_view(session, p.id, viewer.id)
+
     return ProjectOut.model_validate(p)
 
 

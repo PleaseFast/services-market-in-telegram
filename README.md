@@ -82,6 +82,7 @@ projects 1───* chat_threads
 chat_threads 1───* messages
 projects 1───* reviews
 users 1───* notifications
+projects *───* users (via project_views — specialist view history)
 ```
 
 ## MVP roadmap

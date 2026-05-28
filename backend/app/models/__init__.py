@@ -9,6 +9,7 @@ from app.models.profile import (
     SpecialistWorkplace,
 )
 from app.models.project import Project, ProjectStatus, ProjectTemplate
+from app.models.project_view import ProjectView
 from app.models.review import Review
 from app.models.telegram import TelegramAccount
 from app.models.user import RefreshToken, User, UserRole
@@ -26,6 +27,7 @@ __all__ = [
     "Project",
     "ProjectStatus",
     "ProjectTemplate",
+    "ProjectView",
     "RefreshToken",
     "Review",
     "SpecialistPortfolioLink",

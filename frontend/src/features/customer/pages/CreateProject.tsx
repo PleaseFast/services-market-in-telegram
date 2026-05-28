@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { useCreateProject, useTemplates } from "@/features/projects/api";
 import { useAuthStore } from "@/stores/auth";
 import { groupByCategory } from "@/lib/templates";
+import { CATEGORIES, clampCategory, suggestCategory } from "@/lib/categories";
 import {
   clearPendingProject,
   loadPendingProject,
@@ -26,6 +28,7 @@ const schema = z.object({
   currency: z.string().length(3).default("USD"),
   deadline: z.string().optional().or(z.literal("")),
   template_id: z.string().optional(),
+  category: z.enum(CATEGORIES),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -57,15 +60,19 @@ export function CreateProject() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { currency: "USD" },
+    defaultValues: { currency: "USD", category: "Other" },
   });
 
   const templateId = watch("template_id");
   const titleValue = watch("title") ?? "";
   const descriptionValue = watch("description") ?? "";
+  const categoryValue = watch("category");
 
   const [suggestedBrief, setSuggestedBrief] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  // Until the user touches the category select, we keep auto-suggesting from
+  // title + description. Once they pick a value manually, lock in.
+  const [categoryTouched, setCategoryTouched] = useState(false);
 
   const grouped = useMemo(() => groupByCategory(templates ?? []), [templates]);
 
@@ -95,6 +102,10 @@ export function CreateProject() {
     setValue("template_id", t.id, { shouldDirty: true });
     setValue("title", t.title, { shouldDirty: true, shouldValidate: true });
     setValue("description", "", { shouldDirty: true, shouldValidate: false });
+    // Picking a template is an explicit category assignment — it overrides
+    // both the keyword suggestion and any prior user choice.
+    setValue("category", clampCategory(t.category), { shouldDirty: true, shouldValidate: true });
+    setCategoryTouched(true);
     setSuggestedBrief(t.description_template);
   }
 
@@ -134,6 +145,8 @@ export function CreateProject() {
     setValue("template_id", t.id);
     setValue("title", t.title);
     setValue("description", "");
+    setValue("category", clampCategory(t.category));
+    setCategoryTouched(true);
     setSuggestedBrief(t.description_template);
   }, [params, templates, setValue]);
 
@@ -141,15 +154,30 @@ export function CreateProject() {
   useEffect(() => {
     const pending = loadPendingProject();
     if (pending) {
-      reset({ ...pending.values });
+      reset({
+        ...pending.values,
+        category: clampCategory(pending.values.category),
+      } as Partial<FormValues> as FormValues);
       // If the rehydrated draft is attached to a template, treat its title as
       // the template-applied title so editing it correctly detaches the
       // template (rather than detaching immediately on mount).
       if (pending.values.template_id) {
         templateAppliedTitleRef.current = pending.values.title ?? null;
       }
+      // A stashed draft already had a category — respect it.
+      if (pending.values.category) setCategoryTouched(true);
     }
   }, [reset]);
+
+  // Auto-suggest the category from title + description until the user touches
+  // the select. Runs whenever the input text changes.
+  useEffect(() => {
+    if (categoryTouched) return;
+    const suggested = suggestCategory(titleValue, descriptionValue);
+    if (suggested !== categoryValue) {
+      setValue("category", suggested, { shouldDirty: false, shouldValidate: false });
+    }
+  }, [titleValue, descriptionValue, categoryTouched, categoryValue, setValue]);
 
   // Apply ?title= from the URL — used by the landing-page search input, which
   // routes here as a "start a project request" entry point. Precedence:
@@ -217,6 +245,7 @@ export function CreateProject() {
           currency: pending.values.currency,
           deadline: pending.values.deadline || null,
           template_id: pending.values.template_id || null,
+          category: pending.values.category ?? null,
           publish: true,
         });
         clearPendingProject();
@@ -243,6 +272,7 @@ export function CreateProject() {
         currency: values.currency,
         deadline: values.deadline,
         template_id: values.template_id,
+        category: values.category,
       };
       savePendingProject(payload);
       // Exit guest mode if applicable so the auth flow is clean.
@@ -260,6 +290,7 @@ export function CreateProject() {
         currency: values.currency,
         deadline: values.deadline,
         template_id: values.template_id,
+        category: values.category,
       };
       savePendingProject(payload);
       useAuthStore.getState().exitGuest();
@@ -275,6 +306,7 @@ export function CreateProject() {
         currency: values.currency,
         deadline: values.deadline || null,
         template_id: values.template_id || null,
+        category: values.category,
         publish,
       });
       clearPendingProject();
@@ -327,6 +359,29 @@ export function CreateProject() {
               <Label htmlFor="title">Title</Label>
               <Input id="title" {...register("title")} />
               {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="category">Category</Label>
+              <Select
+                id="category"
+                {...register("category", {
+                  onChange: () => setCategoryTouched(true),
+                })}
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
+              {!categoryTouched && (
+                <p className="text-xs text-muted-foreground">
+                  Auto-detected from title and details. Pick a different one if needed.
+                </p>
+              )}
+              {errors.category && (
+                <p className="text-xs text-destructive">{errors.category.message}</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="description">Details</Label>

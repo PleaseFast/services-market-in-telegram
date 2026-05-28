@@ -40,6 +40,31 @@ async def current_user(
 CurrentUser = Annotated[User, Depends(current_user)]
 
 
+async def current_user_optional(
+    creds: HTTPAuthorizationCredentials | None = Depends(bearer),
+    session: AsyncSession = Depends(get_session),
+) -> User | None:
+    """Like ``current_user`` but returns ``None`` for unauthenticated callers
+    or bad/expired tokens instead of raising. Use on public endpoints that
+    behave differently when the viewer is signed in (e.g. the project feed)."""
+    if creds is None:
+        return None
+    try:
+        payload = decode_token(creds.credentials)
+        if payload.get("type") != "access":
+            return None
+        user_id = UUID(payload["sub"])
+    except Exception:
+        return None
+    user = await get_user(session, user_id)
+    if user is None or not user.is_active:
+        return None
+    return user
+
+
+CurrentUserOptional = Annotated["User | None", Depends(current_user_optional)]
+
+
 def require_role(*roles: UserRole):
     async def _check(user: User = Depends(current_user)) -> User:
         if user.role not in roles:

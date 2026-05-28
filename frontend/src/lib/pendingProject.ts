@@ -14,6 +14,7 @@ export interface PendingProjectValues {
   currency: string;
   deadline?: string | "";
   template_id?: string;
+  category?: string;
 }
 
 interface PendingProject {
