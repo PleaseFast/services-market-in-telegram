@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,24 +7,43 @@ import {
   useApplicants,
   useArchiveProject,
   useCompleteProject,
+  useDeleteProject,
+  usePauseProject,
   useProject,
   usePublishProject,
+  useResumeProject,
   useSelectSpecialist,
 } from "@/features/projects/api";
 import { formatDate } from "@/lib/utils";
 
 export function CustomerProjectDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { data: project } = useProject(id);
   const { data: applicants } = useApplicants(
-    project && project.status !== "draft" ? id : undefined,
+    project && (project.status === "open" || project.status === "in_progress" || project.status === "completed")
+      ? id
+      : undefined,
   );
   const publish = usePublishProject();
   const select = useSelectSpecialist();
   const complete = useCompleteProject();
   const archive = useArchiveProject();
+  const pause = usePauseProject();
+  const resume = useResumeProject();
+  const del = useDeleteProject();
 
   if (!project) return <p className="text-muted-foreground text-sm">Loading…</p>;
+
+  const canEdit = ["draft", "open", "paused"].includes(project.status);
+  const canDelete = ["draft", "open", "paused", "canceled"].includes(project.status);
+
+  const handleDelete = () => {
+    if (!window.confirm("Delete this project? This can't be undone.")) return;
+    del.mutate(project.id, {
+      onSuccess: () => navigate("/c/projects"),
+    });
+  };
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -39,7 +58,14 @@ export function CustomerProjectDetail() {
                 Budget: {project.budget} {project.currency} · Deadline: {formatDate(project.deadline)}
               </CardDescription>
             </div>
-            <Badge tone="outline">{project.status}</Badge>
+            <div className="flex items-center gap-2">
+              <Badge tone="outline">{project.status}</Badge>
+              {project.status === "paused" && (
+                <Badge tone="outline" className="border-amber-500 text-amber-700">
+                  Paused
+                </Badge>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -48,6 +74,28 @@ export function CustomerProjectDetail() {
             {project.status === "draft" && (
               <Button onClick={() => publish.mutate(project.id)} disabled={publish.isPending}>
                 Publish
+              </Button>
+            )}
+            {project.status === "open" && (
+              <Button
+                variant="outline"
+                onClick={() => pause.mutate(project.id)}
+                disabled={pause.isPending}
+              >
+                Pause search
+              </Button>
+            )}
+            {project.status === "paused" && (
+              <Button
+                onClick={() => resume.mutate(project.id)}
+                disabled={resume.isPending}
+              >
+                Resume search
+              </Button>
+            )}
+            {canEdit && (
+              <Button variant="outline" asChild>
+                <Link to={`/c/projects/${project.id}/edit`}>Edit</Link>
               </Button>
             )}
             {project.status === "in_progress" && (
@@ -60,11 +108,21 @@ export function CustomerProjectDetail() {
                 Archive
               </Button>
             )}
+            {canDelete && (
+              <Button
+                variant="outline"
+                className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                onClick={handleDelete}
+                disabled={del.isPending}
+              >
+                Delete
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {project.status === "open" && (
+      {(project.status === "open" || project.status === "paused") && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base font-medium">Applicants ({applicants?.length ?? 0})</CardTitle>

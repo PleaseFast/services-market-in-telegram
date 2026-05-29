@@ -19,6 +19,7 @@ import { CustomerDashboard } from "@/features/customer/pages/CustomerDashboard";
 import { CreateProject } from "@/features/customer/pages/CreateProject";
 import { CustomerProjects } from "@/features/customer/pages/CustomerProjects";
 import { CustomerProjectDetail } from "@/features/customer/pages/CustomerProjectDetail";
+import { EditProject } from "@/features/customer/pages/EditProject";
 import { SpecialistsCatalog } from "@/features/customer/pages/SpecialistsCatalog";
 
 // Public specialist profile
@@ -93,6 +94,7 @@ export const router = createBrowserRouter([
           { path: "c", element: <CustomerDashboard /> },
           { path: "c/projects", element: <CustomerProjects /> },
           { path: "c/projects/:id", element: <CustomerProjectDetail /> },
+          { path: "c/projects/:id/edit", element: <EditProject /> },
           { path: "c/specialists", element: <SpecialistsCatalog /> },
         ],
       },

@@ -21,6 +21,9 @@ export function ProjectDetailSpecialist() {
   if (isLoading) return <p className="text-muted-foreground text-sm">Loading…</p>;
   if (!project) return <p>Project not found.</p>;
 
+  const publishedDisplay = formatDate(project.published_at ?? project.created_at);
+  const higher = project.higher_rated_applicants ?? 0;
+
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       <Card>
@@ -33,12 +36,22 @@ export function ProjectDetailSpecialist() {
               <CardDescription>
                 Budget: {project.budget} {project.currency} · Deadline: {formatDate(project.deadline)}
               </CardDescription>
+              <p className="text-xs text-muted-foreground mt-1">
+                Published: {publishedDisplay}
+              </p>
             </div>
             <Badge tone="outline">{project.status}</Badge>
           </div>
         </CardHeader>
-        <CardContent className="whitespace-pre-wrap text-sm leading-relaxed">
-          {project.description}
+        <CardContent className="space-y-3">
+          {higher > 0 && (
+            <p className="text-xs rounded-md border border-amber-500/40 bg-amber-50 text-amber-800 px-3 py-2">
+              {higher === 1
+                ? "1 applicant has a higher rating than you"
+                : `${higher} applicants have a higher rating than you`}
+            </p>
+          )}
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">{project.description}</p>
         </CardContent>
       </Card>
 

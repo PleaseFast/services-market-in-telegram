@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import enum
 import uuid
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, Enum, ForeignKey, Index, Numeric, String, Text, Uuid
+from sqlalchemy import Date, DateTime, Enum, ForeignKey, Index, Numeric, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, SoftDelete, Timestamps, UUIDPK
@@ -14,6 +14,7 @@ from app.models.base import Base, SoftDelete, Timestamps, UUIDPK
 class ProjectStatus(str, enum.Enum):
     DRAFT = "draft"
     OPEN = "open"
+    PAUSED = "paused"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
     ARCHIVED = "archived"
@@ -58,6 +59,10 @@ class Project(UUIDPK, Timestamps, SoftDelete, Base):
     )
     selected_specialist_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+
+    published_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
 
     template: Mapped[ProjectTemplate | None] = relationship()

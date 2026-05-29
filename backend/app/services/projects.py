@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from uuid import UUID
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.categories import clamp_category, suggest_category
 from app.models.application import Application, ApplicationStatus
+from app.models.profile import SpecialistProfile
 from app.models.project import Project, ProjectStatus, ProjectTemplate
 from app.models.user import User, UserRole
 from app.repositories.projects import get_project
@@ -25,6 +28,7 @@ async def create_project(session: AsyncSession, user: User, data: ProjectIn) -> 
         session, template_id=data.template_id, requested=data.category,
         title=data.title, description=data.description,
     )
+    now = datetime.now(timezone.utc)
     project = Project(
         customer_id=user.id,
         title=data.title,
@@ -35,6 +39,7 @@ async def create_project(session: AsyncSession, user: User, data: ProjectIn) -> 
         template_id=data.template_id,
         category=category,
         status=ProjectStatus.OPEN if data.publish else ProjectStatus.DRAFT,
+        published_at=now if data.publish else None,
     )
     session.add(project)
     await session.commit()
@@ -72,8 +77,8 @@ async def _resolve_category(
 
 async def update_project(session: AsyncSession, user: User, project_id: UUID, patch: ProjectPatch) -> Project:
     project = await _owned_project(session, user, project_id)
-    if project.status not in (ProjectStatus.DRAFT, ProjectStatus.OPEN):
-        raise ConflictError("Only draft/open projects can be edited")
+    if project.status not in (ProjectStatus.DRAFT, ProjectStatus.OPEN, ProjectStatus.PAUSED):
+        raise ConflictError("Only draft/open/paused projects can be edited")
     for field, value in patch.model_dump(exclude_unset=True).items():
         setattr(project, field, value)
     await session.commit()
@@ -89,6 +94,8 @@ async def publish_project(session: AsyncSession, user: User, project_id: UUID) -
     if project.status != ProjectStatus.DRAFT:
         raise ConflictError("Only draft projects can be published")
     project.status = ProjectStatus.OPEN
+    if project.published_at is None:
+        project.published_at = datetime.now(timezone.utc)
     await session.commit()
     # ``onupdate=func.now()`` marks ``updated_at`` as expired post-UPDATE;
     # refresh so the sync ORM-read path (Pydantic model_validate) doesn't try
@@ -199,8 +206,8 @@ async def archive_project(session: AsyncSession, user: User, project_id: UUID) -
 
 async def cancel_project(session: AsyncSession, user: User, project_id: UUID) -> Project:
     project = await _owned_project(session, user, project_id)
-    if project.status not in (ProjectStatus.DRAFT, ProjectStatus.OPEN):
-        raise ConflictError("Only draft/open projects can be canceled")
+    if project.status not in (ProjectStatus.DRAFT, ProjectStatus.OPEN, ProjectStatus.PAUSED):
+        raise ConflictError("Only draft/open/paused projects can be canceled")
     project.status = ProjectStatus.CANCELED
     await session.commit()
     # ``onupdate=func.now()`` marks ``updated_at`` as expired post-UPDATE;
@@ -208,6 +215,63 @@ async def cancel_project(session: AsyncSession, user: User, project_id: UUID) ->
     # to lazy-load and trip MissingGreenlet.
     await session.refresh(project)
     return project
+
+
+async def pause_project(session: AsyncSession, user: User, project_id: UUID) -> Project:
+    project = await _owned_project(session, user, project_id)
+    if project.status != ProjectStatus.OPEN:
+        raise ConflictError("Only open projects can be paused")
+    project.status = ProjectStatus.PAUSED
+    await session.commit()
+    await session.refresh(project)
+    return project
+
+
+async def resume_project(session: AsyncSession, user: User, project_id: UUID) -> Project:
+    project = await _owned_project(session, user, project_id)
+    if project.status != ProjectStatus.PAUSED:
+        raise ConflictError("Only paused projects can be resumed")
+    project.status = ProjectStatus.OPEN
+    await session.commit()
+    await session.refresh(project)
+    return project
+
+
+_DELETABLE_STATUSES = (
+    ProjectStatus.DRAFT,
+    ProjectStatus.OPEN,
+    ProjectStatus.PAUSED,
+    ProjectStatus.CANCELED,
+)
+
+
+async def delete_project(session: AsyncSession, user: User, project_id: UUID) -> None:
+    project = await _owned_project(session, user, project_id)
+    if project.status not in _DELETABLE_STATUSES:
+        raise ConflictError("Active projects cannot be deleted")
+    project.deleted_at = datetime.now(timezone.utc)
+    await session.commit()
+
+
+async def count_higher_rated_applicants(
+    session: AsyncSession, project_id: UUID, viewer_user_id: UUID
+) -> int:
+    viewer_rating_res = await session.execute(
+        select(SpecialistProfile.rating_avg).where(SpecialistProfile.user_id == viewer_user_id)
+    )
+    viewer_rating = viewer_rating_res.scalar_one_or_none() or 0
+    count = await session.scalar(
+        select(func.count())
+        .select_from(Application)
+        .join(SpecialistProfile, SpecialistProfile.user_id == Application.specialist_id)
+        .where(
+            Application.project_id == project_id,
+            Application.status == ApplicationStatus.PENDING,
+            Application.specialist_id != viewer_user_id,
+            SpecialistProfile.rating_avg > viewer_rating,
+        )
+    )
+    return int(count or 0)
 
 
 # --- helpers ---

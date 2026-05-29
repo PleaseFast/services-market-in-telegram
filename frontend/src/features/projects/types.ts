@@ -1,6 +1,7 @@
 export type ProjectStatus =
   | "draft"
   | "open"
+  | "paused"
   | "in_progress"
   | "completed"
   | "archived"
@@ -18,8 +19,10 @@ export interface Project {
   category: string;
   selected_specialist_id: string | null;
   template_id: string | null;
+  published_at: string | null;
   created_at: string;
   updated_at: string;
+  higher_rated_applicants?: number | null;
 }
 
 export interface ProjectTemplate {

@@ -2,7 +2,7 @@ from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Response
 
 from app.core.categories import clamp_category
 from app.core.deps import CurrentUser, CurrentUserOptional, SessionDep
@@ -18,6 +18,7 @@ from app.repositories.projects import (
 from app.repositories.specialists import get_profile_by_user
 from app.schemas.common import Page
 from app.schemas.project import (
+    ProjectDetailOut,
     ProjectIn,
     ProjectOut,
     ProjectPatch,
@@ -123,26 +124,35 @@ async def create(payload: ProjectIn, user: CurrentUser, session: SessionDep) -> 
     return ProjectOut.model_validate(p)
 
 
-@router.get("/{project_id}", response_model=ProjectOut)
+@router.get("/{project_id}", response_model=ProjectDetailOut)
 async def detail(
     project_id: UUID,
     session: SessionDep,
     viewer: CurrentUserOptional,
-) -> ProjectOut:
+) -> ProjectDetailOut:
     p = await get_project(session, project_id)
     if p is None or p.deleted_at is not None:
         raise HTTPException(404, "Project not found")
 
-    # Best-effort view tracking — only for authenticated specialists who don't
-    # own the project. Failures are swallowed inside record_view.
+    viewer_is_owner = viewer is not None and viewer.id == p.customer_id
+    if p.status == ProjectStatus.PAUSED and not viewer_is_owner:
+        raise HTTPException(404, "Project not found")
+
+    higher_rated: int | None = None
     if (
         viewer is not None
         and viewer.role == UserRole.SPECIALIST
         and viewer.id != p.customer_id
     ):
+        # Best-effort view tracking — failures are swallowed inside record_view.
         await record_view(session, p.id, viewer.id)
+        higher_rated = await project_svc.count_higher_rated_applicants(
+            session, p.id, viewer.id
+        )
 
-    return ProjectOut.model_validate(p)
+    out = ProjectDetailOut.model_validate(p)
+    out.higher_rated_applicants = higher_rated
+    return out
 
 
 @router.patch("/{project_id}", response_model=ProjectOut)
@@ -178,3 +188,19 @@ async def archive(project_id: UUID, user: CurrentUser, session: SessionDep) -> P
 @router.post("/{project_id}/cancel", response_model=ProjectOut)
 async def cancel(project_id: UUID, user: CurrentUser, session: SessionDep) -> ProjectOut:
     return ProjectOut.model_validate(await project_svc.cancel_project(session, user, project_id))
+
+
+@router.post("/{project_id}/pause", response_model=ProjectOut)
+async def pause(project_id: UUID, user: CurrentUser, session: SessionDep) -> ProjectOut:
+    return ProjectOut.model_validate(await project_svc.pause_project(session, user, project_id))
+
+
+@router.post("/{project_id}/resume", response_model=ProjectOut)
+async def resume(project_id: UUID, user: CurrentUser, session: SessionDep) -> ProjectOut:
+    return ProjectOut.model_validate(await project_svc.resume_project(session, user, project_id))
+
+
+@router.delete("/{project_id}", status_code=204, response_class=Response)
+async def delete(project_id: UUID, user: CurrentUser, session: SessionDep) -> Response:
+    await project_svc.delete_project(session, user, project_id)
+    return Response(status_code=204)

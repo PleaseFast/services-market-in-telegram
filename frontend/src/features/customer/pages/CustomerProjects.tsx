@@ -21,7 +21,14 @@ export function CustomerProjects() {
                 <span className="text-muted-foreground">
                   {p.budget} {p.currency}
                 </span>
-                <Badge tone="outline">{p.status}</Badge>
+                <div className="flex items-center gap-2">
+                  {p.status === "paused" && (
+                    <Badge tone="outline" className="border-amber-500 text-amber-700">
+                      Paused
+                    </Badge>
+                  )}
+                  <Badge tone="outline">{p.status}</Badge>
+                </div>
               </CardContent>
             </Card>
           </Link>

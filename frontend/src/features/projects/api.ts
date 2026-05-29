@@ -137,3 +137,54 @@ export function useArchiveProject() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
   });
 }
+
+export function usePauseProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => http.post<Project>(`/projects/${id}/pause`),
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: ["project", id] });
+      qc.invalidateQueries({ queryKey: ["projects"] });
+    },
+  });
+}
+
+export function useResumeProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => http.post<Project>(`/projects/${id}/resume`),
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: ["project", id] });
+      qc.invalidateQueries({ queryKey: ["projects"] });
+    },
+  });
+}
+
+export function useDeleteProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => http.del<void>(`/projects/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
+  });
+}
+
+export interface UpdateProjectInput {
+  title?: string;
+  description?: string;
+  budget?: number;
+  currency?: string;
+  deadline?: string | null;
+  category?: string | null;
+}
+
+export function useUpdateProject(id: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateProjectInput) =>
+      http.patch<Project>(`/projects/${id}`, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["project", id] });
+      qc.invalidateQueries({ queryKey: ["projects"] });
+    },
+  });
+}

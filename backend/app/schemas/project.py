@@ -66,5 +66,10 @@ class ProjectOut(ORMBase):
     category: str
     selected_specialist_id: UUID | None
     template_id: UUID | None
+    published_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
+
+
+class ProjectDetailOut(ProjectOut):
+    higher_rated_applicants: int | None = None
