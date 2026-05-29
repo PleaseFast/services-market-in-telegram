@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,10 @@ import { useApply, useProject } from "@/features/projects/api";
 import { formatDate } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
 import { GuestPrompt } from "@/components/GuestPrompt";
+import { CustomerInfoBlock } from "@/features/projects/components/CustomerInfoBlock";
+import { LeaveReviewCard } from "@/features/projects/components/LeaveReviewCard";
+import { useUserReviews } from "@/features/specialist/api";
+import { StarRating } from "@/features/specialist/components/reviews/StarRating";
 
 export function ProjectDetailSpecialist() {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +21,24 @@ export function ProjectDetailSpecialist() {
   const [done, setDone] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const isGuest = useAuthStore((s) => s.isGuest);
+  const me = useAuthStore((s) => s.user);
+
+  const reviewed = ["completed", "archived"].includes(project?.status ?? "");
+  const isSelectedSpecialist =
+    !!project && !isGuest && !!me && me.id === project.selected_specialist_id;
+
+  // Look up an existing review by this specialist on the customer so we can
+  // show the user their own review instead of an empty form when they return.
+  const { data: customerReviews } = useUserReviews(
+    reviewed && isSelectedSpecialist ? project?.customer_id : undefined,
+  );
+  const myReview = useMemo(
+    () =>
+      customerReviews?.items.find(
+        (r) => r.project_id === project?.id && r.author_id === me?.id,
+      ),
+    [customerReviews, project?.id, me?.id],
+  );
 
   if (isLoading) return <p className="text-muted-foreground text-sm">Loading…</p>;
   if (!project) return <p>Project not found.</p>;
@@ -54,6 +76,8 @@ export function ProjectDetailSpecialist() {
           <p className="whitespace-pre-wrap text-sm leading-relaxed">{project.description}</p>
         </CardContent>
       </Card>
+
+      <CustomerInfoBlock customerId={project.customer_id} currentProjectId={project.id} />
 
       {isGuest && project.status === "open" && (
         <GuestPrompt action="apply to this project" />
@@ -95,6 +119,23 @@ export function ProjectDetailSpecialist() {
         <Card>
           <CardContent className="pt-6">
             ✅ Application sent. Customer will be notified.
+          </CardContent>
+        </Card>
+      )}
+
+      {reviewed && isSelectedSpecialist && !myReview && (
+        <LeaveReviewCard projectId={project.id} subjectLabel="the customer" />
+      )}
+      {reviewed && isSelectedSpecialist && myReview && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-medium">Your review</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <StarRating value={myReview.rating} />
+            {myReview.text && (
+              <p className="text-sm text-muted-foreground whitespace-pre-line">{myReview.text}</p>
+            )}
           </CardContent>
         </Card>
       )}

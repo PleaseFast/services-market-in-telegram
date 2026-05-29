@@ -1,4 +1,5 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +16,10 @@ import {
   useSelectSpecialist,
 } from "@/features/projects/api";
 import { formatDate } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth";
+import { LeaveReviewCard } from "@/features/projects/components/LeaveReviewCard";
+import { useUserReviews } from "@/features/specialist/api";
+import { StarRating } from "@/features/specialist/components/reviews/StarRating";
 
 export function CustomerProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +29,18 @@ export function CustomerProjectDetail() {
     project && (project.status === "open" || project.status === "in_progress" || project.status === "completed")
       ? id
       : undefined,
+  );
+  const me = useAuthStore((s) => s.user);
+  const reviewed = ["completed", "archived"].includes(project?.status ?? "");
+  const { data: specialistReviews } = useUserReviews(
+    reviewed && project?.selected_specialist_id ? project.selected_specialist_id : undefined,
+  );
+  const myReview = useMemo(
+    () =>
+      specialistReviews?.items.find(
+        (r) => r.project_id === project?.id && r.author_id === me?.id,
+      ),
+    [specialistReviews, project?.id, me?.id],
   );
   const publish = usePublishProject();
   const select = useSelectSpecialist();
@@ -175,6 +192,23 @@ export function CustomerProjectDetail() {
                 <li className="py-3 text-sm text-muted-foreground">No applicants yet.</li>
               )}
             </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {reviewed && project.selected_specialist_id && !myReview && (
+        <LeaveReviewCard projectId={project.id} subjectLabel="the specialist" />
+      )}
+      {reviewed && project.selected_specialist_id && myReview && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-medium">Your review</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <StarRating value={myReview.rating} />
+            {myReview.text && (
+              <p className="text-sm text-muted-foreground whitespace-pre-line">{myReview.text}</p>
+            )}
           </CardContent>
         </Card>
       )}

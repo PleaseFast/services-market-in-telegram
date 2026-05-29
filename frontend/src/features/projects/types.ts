@@ -116,8 +116,18 @@ export interface Review {
   project_id: string;
   project_title: string;
   author_id: string;
+  author_name: string;
   subject_id: string;
   rating: number;
   text: string | null;
   created_at: string;
+}
+
+export interface CustomerPublic {
+  id: string;
+  user_id: string;
+  display_name: string;
+  avatar_id: string;
+  rating_avg: string;
+  rating_count: number;
 }

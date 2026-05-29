@@ -83,6 +83,32 @@ async def list_projects_for_customer(
     return list(res.scalars().all()), int(total or 0)
 
 
+async def list_open_by_customer(
+    session: AsyncSession,
+    customer_id: UUID,
+    *,
+    limit: int = 20,
+) -> list[Project]:
+    """Open (published) projects owned by a customer.
+
+    Used by the embedded customer info block on a project page so a viewer
+    can see what else this customer currently has on offer. Sorted by the
+    publish time so the freshest listings appear first.
+    """
+    stmt = (
+        select(Project)
+        .where(
+            Project.customer_id == customer_id,
+            Project.status == ProjectStatus.OPEN,
+            Project.deleted_at.is_(None),
+        )
+        .order_by(Project.published_at.desc().nulls_last(), Project.created_at.desc())
+        .limit(limit)
+    )
+    res = await session.execute(stmt)
+    return list(res.scalars().all())
+
+
 async def list_projects_for_specialist(
     session: AsyncSession,
     specialist_id: UUID,

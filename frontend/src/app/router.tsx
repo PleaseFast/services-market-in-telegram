@@ -19,6 +19,7 @@ import { CustomerDashboard } from "@/features/customer/pages/CustomerDashboard";
 import { CreateProject } from "@/features/customer/pages/CreateProject";
 import { CustomerProjects } from "@/features/customer/pages/CustomerProjects";
 import { CustomerProjectDetail } from "@/features/customer/pages/CustomerProjectDetail";
+import { CustomerProfilePage } from "@/features/customer/pages/CustomerProfilePage";
 import { EditProject } from "@/features/customer/pages/EditProject";
 import { SpecialistsCatalog } from "@/features/customer/pages/SpecialistsCatalog";
 
@@ -39,12 +40,13 @@ function RequireAuth({
   const { user, accessToken } = useAuthStore();
   if (!accessToken || !user) return <Navigate to="/login" replace />;
   if (role && user.role !== role) return <Navigate to="/" replace />;
-  if (
-    enforceOnboarding &&
-    user.role === "specialist" &&
-    user.profile_complete === false
-  ) {
-    return <Navigate to="/s/profile?onboarding=1" replace />;
+  if (enforceOnboarding && user.profile_complete === false) {
+    if (user.role === "specialist") {
+      return <Navigate to="/s/profile?onboarding=1" replace />;
+    }
+    if (user.role === "customer") {
+      return <Navigate to="/c/profile?onboarding=1" replace />;
+    }
   }
   return <Outlet />;
 }
@@ -118,6 +120,12 @@ export const router = createBrowserRouter([
           { path: "c/projects/:id/edit", element: <EditProject /> },
           { path: "c/specialists", element: <SpecialistsCatalog /> },
         ],
+      },
+      {
+        // Exempt from the onboarding gate so the user can actually fill the
+        // display name in.
+        element: <RequireAuth role="customer" enforceOnboarding={false} />,
+        children: [{ path: "c/profile", element: <CustomerProfilePage /> }],
       },
 
       {

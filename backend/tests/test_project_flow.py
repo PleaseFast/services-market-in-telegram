@@ -86,19 +86,31 @@ async def test_full_project_lifecycle(client):
     assert r.status_code == 200
     assert r.json()["status"] == "completed"
 
-    # reviews (both directions)
+    # reviews (both directions, half-star)
     r = await client.post(
         f"/api/v1/projects/{project_id}/reviews",
         headers=_auth(customer),
-        json={"rating": 5, "text": "great"},
+        json={"rating": 4.5, "text": "great"},
     )
-    assert r.status_code == 201
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert body["rating"] == 4.5
+    assert body["author_name"] != ""
     r = await client.post(
         f"/api/v1/projects/{project_id}/reviews",
         headers=_auth(specialist),
-        json={"rating": 4, "text": "good client"},
+        json={"rating": 5, "text": "good client"},
     )
-    assert r.status_code == 201
+    assert r.status_code == 201, r.text
+    assert r.json()["rating"] == 5.0
+
+    # duplicate review rejected
+    r = await client.post(
+        f"/api/v1/projects/{project_id}/reviews",
+        headers=_auth(customer),
+        json={"rating": 3, "text": "again"},
+    )
+    assert r.status_code == 409
 
     # archive
     r = await client.post(

@@ -36,7 +36,10 @@ export function ReviewsBlock({ userId, ratingAvg, ratingCount }: ReviewsBlockPro
           <Card key={r.id}>
             <CardContent className="p-4 space-y-2">
               <div className="flex items-start justify-between gap-2 flex-wrap">
-                <p className="font-medium leading-tight">{r.project_title}</p>
+                <div className="flex flex-col">
+                  <p className="font-medium leading-tight">{r.project_title}</p>
+                  <p className="text-xs text-muted-foreground">by {r.author_name}</p>
+                </div>
                 <p className="text-xs text-muted-foreground">{formatDate(r.created_at)}</p>
               </div>
               <StarRating value={r.rating} size="sm" />

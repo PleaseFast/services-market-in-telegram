@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { http } from "@/lib/api";
-import type { Application, Page, Project, ProjectTemplate } from "./types";
+import type { Application, Page, Project, ProjectTemplate, Review } from "./types";
 
 export function useTemplates() {
   return useQuery({
@@ -175,6 +175,23 @@ export interface UpdateProjectInput {
   currency?: string;
   deadline?: string | null;
   category?: string | null;
+}
+
+export interface ReviewInput {
+  rating: number;
+  text: string | null;
+}
+
+export function useCreateReview(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ReviewInput) =>
+      http.post<Review>(`/projects/${projectId}/reviews`, input),
+    onSuccess: (review) => {
+      qc.invalidateQueries({ queryKey: ["reviews", review.subject_id] });
+      qc.invalidateQueries({ queryKey: ["customer", "public", review.subject_id] });
+    },
+  });
 }
 
 export function useUpdateProject(id: string | undefined) {

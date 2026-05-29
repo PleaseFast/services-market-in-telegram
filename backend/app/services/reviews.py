@@ -16,8 +16,34 @@ from app.services.errors import ConflictError, ForbiddenError, NotFoundError
 from app.services.notifications import NotificationType, notify
 
 
+def _rating_to_half(rating: float) -> int:
+    """Convert a 0.0..5.0 step-0.5 float into a 0..10 integer."""
+    return int(round(rating * 2))
+
+
+async def _author_name(session: AsyncSession, author_id: UUID) -> str:
+    """Best-effort display name for the review author.
+
+    Specialists publish ``full_name``; customers publish ``display_name``.
+    Both profile types are guaranteed to exist once the post-registration
+    onboarding gate is in place, but we still fall back to "Anonymous" so
+    legacy rows without a profile don't crash the response.
+    """
+    res = await session.execute(
+        select(SpecialistProfile.full_name).where(SpecialistProfile.user_id == author_id)
+    )
+    name = res.scalar_one_or_none()
+    if name:
+        return name
+    res = await session.execute(
+        select(CustomerProfile.display_name).where(CustomerProfile.user_id == author_id)
+    )
+    name = res.scalar_one_or_none()
+    return name or "Anonymous"
+
+
 async def create_review(
-    session: AsyncSession, user: User, project_id: UUID, rating: int, text: str | None
+    session: AsyncSession, user: User, project_id: UUID, rating: float, text: str | None
 ) -> Review:
     project = await get_project(session, project_id)
     if project is None:
@@ -38,7 +64,7 @@ async def create_review(
         project_id=project_id,
         author_id=user.id,
         subject_id=subject_id,
-        rating=rating,
+        rating_half=_rating_to_half(rating),
         text=text,
     )
     session.add(review)
@@ -53,7 +79,7 @@ async def create_review(
         session,
         subject_id,
         NotificationType.NEW_REVIEW,
-        {"project_id": str(project_id), "rating": rating},
+        {"project_id": str(project_id), "rating": review.rating},
     )
     await session.commit()
     return review
@@ -65,22 +91,42 @@ async def list_for_subject(
     *,
     limit: int = 20,
     offset: int = 0,
-) -> tuple[list[tuple[Review, str]], int]:
-    """Return (review, project_title) pairs and the total count for paging.
+) -> tuple[list[tuple[Review, str, str]], int]:
+    """Return (review, project_title, author_name) triples + total.
 
-    Joining Project here keeps the response self-contained — the public
-    reviews block doesn't need a second round-trip per row to fetch titles.
+    Author name is sourced from whichever profile row matches the author —
+    specialist or customer. ``func.coalesce`` is portable across SQLite and
+    Postgres.
     """
+    spec_name = (
+        select(SpecialistProfile.full_name)
+        .where(SpecialistProfile.user_id == Review.author_id)
+        .correlate(Review)
+        .scalar_subquery()
+    )
+    cust_name = (
+        select(CustomerProfile.display_name)
+        .where(CustomerProfile.user_id == Review.author_id)
+        .correlate(Review)
+        .scalar_subquery()
+    )
+    author_label = func.coalesce(spec_name, cust_name, "Anonymous")
+
     base = (
-        select(Review, Project.title)
+        select(Review, Project.title, author_label)
         .join(Project, Project.id == Review.project_id)
         .where(Review.subject_id == subject_id)
     )
-    total = await session.scalar(select(func.count()).select_from(base.order_by(None).subquery()))
+    total = await session.scalar(
+        select(func.count())
+        .select_from(
+            select(Review.id).where(Review.subject_id == subject_id).subquery()
+        )
+    )
     res = await session.execute(
         base.order_by(Review.created_at.desc()).limit(limit).offset(offset)
     )
-    return [(row[0], row[1]) for row in res.all()], int(total or 0)
+    return [(row[0], row[1], row[2]) for row in res.all()], int(total or 0)
 
 
 async def _recompute_rating(session: AsyncSession, subject_id: UUID) -> None:
@@ -88,10 +134,12 @@ async def _recompute_rating(session: AsyncSession, subject_id: UUID) -> None:
     if subject is None:
         return
     res = await session.execute(
-        select(func.avg(Review.rating), func.count(Review.id)).where(Review.subject_id == subject_id)
+        select(func.avg(Review.rating_half), func.count(Review.id)).where(
+            Review.subject_id == subject_id
+        )
     )
-    avg, count = res.one()
-    avg_val = Decimal(avg or 0).quantize(Decimal("0.01"))
+    avg_half, count = res.one()
+    avg_val = (Decimal(avg_half or 0) / Decimal(2)).quantize(Decimal("0.01"))
     count_val = int(count or 0)
 
     if subject.role == UserRole.SPECIALIST:

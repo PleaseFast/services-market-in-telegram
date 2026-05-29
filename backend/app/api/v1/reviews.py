@@ -17,11 +17,13 @@ async def create(
 ) -> ReviewOut:
     r = await svc.create_review(session, user, project_id, payload.rating, payload.text)
     project = await get_project(session, project_id)
+    author_name = await svc._author_name(session, r.author_id)
     return ReviewOut(
         id=r.id,
         project_id=r.project_id,
         project_title=project.title if project else "",
         author_id=r.author_id,
+        author_name=author_name,
         subject_id=r.subject_id,
         rating=r.rating,
         text=r.text,
@@ -44,12 +46,13 @@ async def list_reviews(
                 project_id=r.project_id,
                 project_title=title,
                 author_id=r.author_id,
+                author_name=author_name,
                 subject_id=r.subject_id,
                 rating=r.rating,
                 text=r.text,
                 created_at=r.created_at,
             )
-            for r, title in items
+            for r, title, author_name in items
         ],
         total=total,
         limit=limit,

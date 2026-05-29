@@ -75,7 +75,7 @@ export function RegisterPage() {
         nav(fwd.toString() ? `${next}${sep}${fwd.toString()}` : next);
         return;
       }
-      nav(me.role === "customer" ? "/c" : "/s/profile");
+      nav(me.role === "customer" ? "/c/profile?onboarding=1" : "/s/profile?onboarding=1");
     } catch (e: unknown) {
       setErr((e as Error).message);
     }

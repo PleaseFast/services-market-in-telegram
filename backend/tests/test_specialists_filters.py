@@ -49,8 +49,19 @@ async def test_profile_complete_flag(client):
     r = await client.get("/api/v1/auth/me", headers=_auth(spec))
     assert r.json()["profile_complete"] is True
 
-    # Customers are always considered complete (no gate on that side).
+    # Customers also need a CustomerProfile (display_name) before the
+    # onboarding gate considers them complete.
     cust = await _register(client, "pc-c@x.io", "customer")
+    r = await client.get("/api/v1/auth/me", headers=_auth(cust))
+    assert r.json()["profile_complete"] is False
+
+    r = await client.put(
+        "/api/v1/customers/me",
+        headers=_auth(cust),
+        json={"display_name": "PC Customer"},
+    )
+    assert r.status_code == 200, r.text
+
     r = await client.get("/api/v1/auth/me", headers=_auth(cust))
     assert r.json()["profile_complete"] is True
 
