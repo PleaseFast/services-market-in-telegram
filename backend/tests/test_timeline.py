@@ -24,7 +24,7 @@ async def _save_profile(client, tok: str) -> None:
         json={
             "full_name": "Sam",
             "age": 30,
-            "category": "Backend",
+            "categories": ["Backend"],
             "years_experience": 5,
             "bio": "",
         },

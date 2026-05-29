@@ -104,7 +104,9 @@ export function ProjectFeed() {
   }
 
   const { data, isLoading } = usePublicFeed(filters);
-  const showScope = isSpecialist && !isGuest && profile?.category;
+  const profileCategories = profile?.categories ?? [];
+  const showScope = isSpecialist && !isGuest && profileCategories.length > 0;
+  const scopeLabel = profileCategories.join(", ");
   const active = hasActiveFilters(filters);
 
   const searchInput = (
@@ -161,7 +163,7 @@ export function ProjectFeed() {
         </h1>
         {showScope && (
           <p className="text-sm text-muted-foreground">
-            Showing {profile.category} projects · update your profile to change category
+            Showing projects in: {scopeLabel} · update your profile to change categories
           </p>
         )}
       </div>
@@ -207,7 +209,7 @@ export function ProjectFeed() {
           {active
             ? "No open projects match your filters."
             : showScope
-              ? `No open ${profile.category} projects right now.`
+              ? `No open projects in ${scopeLabel} right now.`
               : "No open projects right now."}
         </p>
       )}

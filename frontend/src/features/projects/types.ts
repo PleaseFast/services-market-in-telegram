@@ -43,7 +43,7 @@ export interface SpecialistPreview {
   user_id: string;
   full_name: string;
   avatar_id: string;
-  category: string;
+  categories: string[];
   rating_avg: number;
   rating_count: number;
 }
@@ -97,7 +97,7 @@ export interface SpecialistProfile {
   user_id: string;
   full_name: string;
   age: number;
-  category: string;
+  categories: string[];
   years_experience: number;
   bio: string;
   avatar_id: string;

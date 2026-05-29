@@ -49,19 +49,24 @@ async def public_feed(
     """Open-project feed.
 
     When the viewer is an authenticated specialist with a profile, the feed is
-    automatically scoped to projects matching the specialist's profile category
-    (no per-request category filter is exposed — specialists already chose one
-    on their profile). Guests and customers see the full feed.
+    automatically scoped to projects in any of the specialist's profile
+    categories (no per-request category filter is exposed — specialists already
+    chose them on their profile). Guests and customers see the full feed.
 
     ``sort="viewed"`` requires an authenticated viewer to be meaningful;
     otherwise it degrades to ``newest``.
     """
-    viewer_category: str | None = None
+    viewer_categories: list[str] | None = None
     viewer_user_id: UUID | None = None
     if viewer is not None and viewer.role == UserRole.SPECIALIST:
         profile = await get_profile_by_user(session, viewer.id)
         if profile is not None:
-            viewer_category = clamp_category(profile.category)
+            cats = [clamp_category(c) for c in profile.categories]
+            # Dedupe in case clamp_category collapsed a few onto "Other".
+            seen: set[str] = set()
+            viewer_categories = [c for c in cats if not (c in seen or seen.add(c))]
+            if not viewer_categories:
+                viewer_categories = None
             viewer_user_id = viewer.id
 
     items, total = await list_open_projects(
@@ -69,7 +74,7 @@ async def public_feed(
         q=q,
         budget_min=budget_min,
         budget_max=budget_max,
-        viewer_category=viewer_category,
+        viewer_categories=viewer_categories,
         viewer_user_id=viewer_user_id,
         sort=sort,
         limit=limit,

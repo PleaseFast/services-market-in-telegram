@@ -10,6 +10,7 @@ interface UserOut {
   id: string;
   email: string | null;
   role: "specialist" | "customer";
+  profile_complete?: boolean;
 }
 
 export async function register(email: string, password: string, role: "specialist" | "customer") {

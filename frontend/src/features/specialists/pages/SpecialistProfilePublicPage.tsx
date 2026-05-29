@@ -69,7 +69,11 @@ export function SpecialistProfilePublicPage() {
                 <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
                   {profile.full_name}
                 </h1>
-                <Badge tone="outline">{profile.category}</Badge>
+                {(profile.categories ?? []).map((c) => (
+                  <Badge key={c} tone="outline">
+                    {c}
+                  </Badge>
+                ))}
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <StarRating value={ratingAvg} />

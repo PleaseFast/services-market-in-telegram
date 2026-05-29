@@ -17,7 +17,7 @@ export function SpecialistDashboard() {
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Dashboard</h1>
           {profile && (
             <p className="text-sm text-muted-foreground">
-              {profile.full_name} · {profile.category}
+              {profile.full_name} · {(profile.categories ?? []).join(", ") || "—"}
             </p>
           )}
         </div>

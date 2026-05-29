@@ -29,10 +29,23 @@ import { SpecialistProfilePublicPage } from "@/features/specialists/pages/Specia
 import { NotificationsPage } from "@/features/notifications/pages/NotificationsPage";
 import { NotFoundPage } from "@/features/landing/pages/NotFoundPage";
 
-function RequireAuth({ role }: { role?: "specialist" | "customer" }) {
+function RequireAuth({
+  role,
+  enforceOnboarding = true,
+}: {
+  role?: "specialist" | "customer";
+  enforceOnboarding?: boolean;
+}) {
   const { user, accessToken } = useAuthStore();
   if (!accessToken || !user) return <Navigate to="/login" replace />;
   if (role && user.role !== role) return <Navigate to="/" replace />;
+  if (
+    enforceOnboarding &&
+    user.role === "specialist" &&
+    user.profile_complete === false
+  ) {
+    return <Navigate to="/s/profile?onboarding=1" replace />;
+  }
   return <Outlet />;
 }
 
@@ -41,6 +54,9 @@ function AllowGuestOrSpecialist() {
   if (isGuest) return <Outlet />;
   if (!accessToken || !user) return <Navigate to="/login" replace />;
   if (user.role !== "specialist") return <Navigate to="/" replace />;
+  if (user.profile_complete === false) {
+    return <Navigate to="/s/profile?onboarding=1" replace />;
+  }
   return <Outlet />;
 }
 
@@ -79,9 +95,14 @@ export const router = createBrowserRouter([
         element: <RequireAuth role="specialist" />,
         children: [
           { path: "s", element: <SpecialistDashboard /> },
-          { path: "s/profile", element: <SpecialistProfilePage /> },
           { path: "s/archive", element: <SpecialistArchive /> },
         ],
+      },
+      {
+        // /s/profile is exempt from the onboarding gate so the user can
+        // actually fill it in.
+        element: <RequireAuth role="specialist" enforceOnboarding={false} />,
+        children: [{ path: "s/profile", element: <SpecialistProfilePage /> }],
       },
 
       {

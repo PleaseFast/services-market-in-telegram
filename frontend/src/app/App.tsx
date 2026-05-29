@@ -21,9 +21,12 @@ async function bootstrapTelegramAuth() {
       { init_data: initData, bot: "referee", role: "specialist" },
     );
     setTokens(tokens.access_token, tokens.refresh_token);
-    const me = await http.get<{ id: string; email: string | null; role: "specialist" | "customer" }>(
-      "/auth/me",
-    );
+    const me = await http.get<{
+      id: string;
+      email: string | null;
+      role: "specialist" | "customer";
+      profile_complete?: boolean;
+    }>("/auth/me");
     setUser(me);
   } catch {
     // user must pick role on landing

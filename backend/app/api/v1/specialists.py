@@ -1,3 +1,4 @@
+from decimal import Decimal
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query
@@ -13,6 +14,7 @@ from app.schemas.profile import (
     SpecialistProfileOut,
     SpecialistProfileTimeline,
 )
+from app.schemas.project import CategoryLiteral
 from app.schemas.services import SpecialistServiceOut
 from app.schemas.timeline import TimelineItemOut
 from app.services.profiles import upsert_specialist_profile
@@ -52,7 +54,7 @@ def _hydrate(
         user_id=profile.user_id,
         full_name=profile.full_name,
         age=profile.age,
-        category=profile.category,
+        categories=profile.categories,
         years_experience=profile.years_experience,
         bio=profile.bio,
         avatar_id=profile.avatar_id,
@@ -66,11 +68,18 @@ def _hydrate(
 @router.get("", response_model=Page[SpecialistProfileOut])
 async def list_specialists(
     session: SessionDep,
-    category: str | None = Query(default=None),
+    category: CategoryLiteral | None = Query(default=None),
+    min_rating: Decimal | None = Query(default=None, ge=0, le=5),
     limit: int = Query(default=20, le=100),
     offset: int = Query(default=0, ge=0),
 ) -> Page[SpecialistProfileOut]:
-    items, total = await search_specialists(session, category=category, limit=limit, offset=offset)
+    items, total = await search_specialists(
+        session,
+        category=category,
+        min_rating=min_rating,
+        limit=limit,
+        offset=offset,
+    )
     services_map = await list_for_profiles(session, [p.id for p in items])
     return Page(
         items=[_hydrate(p, services_map.get(p.id, [])) for p in items],

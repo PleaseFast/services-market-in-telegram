@@ -2,7 +2,11 @@ from app.models.application import Application, ApplicationStatus, DirectOffer
 from app.models.base import Base
 from app.models.chat import ChatParty, ChatThread, Message
 from app.models.notification import Notification
-from app.models.profile import CustomerProfile, SpecialistProfile
+from app.models.profile import (
+    CustomerProfile,
+    SpecialistProfile,
+    SpecialistProfileCategory,
+)
 from app.models.profile_timeline_item import ProfileTimelineItem, TimelineKind
 from app.models.project import Project, ProjectStatus, ProjectTemplate
 from app.models.project_view import ProjectView
@@ -31,6 +35,7 @@ __all__ = [
     "Review",
     "ServiceCatalogItem",
     "SpecialistProfile",
+    "SpecialistProfileCategory",
     "SpecialistService",
     "TelegramAccount",
     "TimelineKind",

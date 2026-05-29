@@ -15,3 +15,4 @@ class UserOut(ORMBase):
     role: UserRole
     is_active: bool
     created_at: datetime
+    profile_complete: bool = True

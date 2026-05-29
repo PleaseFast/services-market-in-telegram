@@ -15,14 +15,14 @@ class ApplicationIn(BaseModel):
 class SpecialistPreview(BaseModel):
     """Minimal preview of a specialist, embedded into ApplicationOut and DirectOfferOut.
 
-    Lets the customer-facing UI render avatar + name + category next to each
+    Lets the customer-facing UI render avatar + name + categories next to each
     applicant without a separate fetch per row.
     """
 
     user_id: UUID
     full_name: str
     avatar_id: str
-    category: str
+    categories: list[str] = []
     rating_avg: float = 0.0
     rating_count: int = 0
 

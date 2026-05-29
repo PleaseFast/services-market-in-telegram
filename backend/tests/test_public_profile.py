@@ -24,7 +24,7 @@ async def test_public_profile_shape(client):
         "/api/v1/specialists/me",
         headers=_auth(spec),
         json={
-            "full_name": "Public Spec", "age": 29, "category": "Backend",
+            "full_name": "Public Spec", "age": 29, "categories": ["Backend"],
             "years_experience": 4, "bio": "hello",
             "avatar_id": "owl:slate",
         },
@@ -68,7 +68,7 @@ async def test_applicant_preview_embedded(client):
         "/api/v1/specialists/me",
         headers=_auth(spec),
         json={
-            "full_name": "Applicant One", "age": 28, "category": "Backend",
+            "full_name": "Applicant One", "age": 28, "categories": ["Backend"],
             "years_experience": 2, "bio": "",
             "avatar_id": "cat:rose",
         },
@@ -91,7 +91,7 @@ async def test_applicant_preview_embedded(client):
     # On create, the response embeds the specialist preview
     assert body["specialist"]["full_name"] == "Applicant One"
     assert body["specialist"]["avatar_id"] == "cat:rose"
-    assert body["specialist"]["category"] == "Backend"
+    assert body["specialist"]["categories"] == ["Backend"]
 
     # And on the customer list endpoint too
     r = await client.get(
@@ -112,7 +112,7 @@ async def test_reviews_paged_with_project_titles(client):
         "/api/v1/specialists/me",
         headers=_auth(spec),
         json={
-            "full_name": "Rev Spec", "age": 30, "category": "Backend",
+            "full_name": "Rev Spec", "age": 30, "categories": ["Backend"],
             "years_experience": 5, "bio": "",
         },
     )

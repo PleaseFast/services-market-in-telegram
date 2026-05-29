@@ -23,7 +23,7 @@ async def list_open_projects(
     q: str | None = None,
     budget_min: Decimal | None = None,
     budget_max: Decimal | None = None,
-    viewer_category: str | None = None,
+    viewer_categories: list[str] | None = None,
     viewer_user_id: UUID | None = None,
     sort: SortMode = "newest",
     limit: int = 20,
@@ -39,8 +39,8 @@ async def list_open_projects(
         stmt = stmt.where(Project.budget >= budget_min)
     if budget_max is not None:
         stmt = stmt.where(Project.budget <= budget_max)
-    if viewer_category:
-        stmt = stmt.where(Project.category == viewer_category)
+    if viewer_categories:
+        stmt = stmt.where(Project.category.in_(viewer_categories))
 
     # Count BEFORE the order_by/limit/offset.
     total = await session.scalar(

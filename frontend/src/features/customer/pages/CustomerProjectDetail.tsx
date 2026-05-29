@@ -147,7 +147,7 @@ export function CustomerProjectDetail() {
                         {a.specialist?.full_name ?? "Specialist"}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {a.specialist?.category ?? "—"} ·{" "}
+                        {(a.specialist?.categories ?? []).join(", ") || "—"} ·{" "}
                         {a.specialist
                           ? `${a.specialist.rating_avg.toFixed(2)} ★ (${a.specialist.rating_count})`
                           : "no rating yet"}

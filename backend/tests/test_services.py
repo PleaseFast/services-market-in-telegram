@@ -25,7 +25,7 @@ async def _save_profile(client, tok: str, category: str = "Backend") -> None:
         "/api/v1/specialists/me",
         headers=_auth(tok),
         json={
-            "full_name": "Sam", "age": 30, "category": category,
+            "full_name": "Sam", "age": 30, "categories": [category],
             "years_experience": 5, "bio": "",
         },
     )

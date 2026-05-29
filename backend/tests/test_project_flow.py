@@ -26,7 +26,7 @@ async def test_full_project_lifecycle(client):
         json={
             "full_name": "Sam Sample",
             "age": 30,
-            "category": "Backend",
+            "categories": ["Backend"],
             "years_experience": 7,
             "bio": "fixer of bugs",
         },
@@ -119,7 +119,7 @@ async def test_pause_resume_hides_from_specialists(client):
         json={
             "full_name": "Pat Pause",
             "age": 30,
-            "category": "Backend",
+            "categories": ["Backend"],
             "years_experience": 5,
             "bio": "",
         },
@@ -199,7 +199,7 @@ async def test_delete_project_rules(client):
         json={
             "full_name": "Del Specialist",
             "age": 30,
-            "category": "Backend",
+            "categories": ["Backend"],
             "years_experience": 5,
             "bio": "",
         },
@@ -263,7 +263,7 @@ async def test_higher_rated_applicants_counter(client, session):
             json={
                 "full_name": full_name,
                 "age": 30,
-                "category": "Backend",
+                "categories": ["Backend"],
                 "years_experience": 5,
                 "bio": "",
             },

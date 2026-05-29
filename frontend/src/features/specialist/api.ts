@@ -29,7 +29,7 @@ export function useMyProfile() {
 export interface ProfileInput {
   full_name: string;
   age: number;
-  category: string;
+  categories: string[];
   years_experience: number;
   bio: string;
   avatar_id: string;

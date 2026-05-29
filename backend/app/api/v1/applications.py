@@ -24,7 +24,7 @@ def _preview(profile) -> SpecialistPreview | None:
         user_id=profile.user_id,
         full_name=profile.full_name,
         avatar_id=profile.avatar_id,
-        category=profile.category,
+        categories=profile.categories,
         rating_avg=float(profile.rating_avg or 0),
         rating_count=profile.rating_count or 0,
     )

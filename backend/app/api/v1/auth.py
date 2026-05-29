@@ -1,6 +1,8 @@
 from fastapi import APIRouter
 
 from app.core.deps import CurrentUser, SessionDep
+from app.models.user import UserRole
+from app.repositories.specialists import has_profile_for_user
 from app.schemas.auth import LoginIn, RefreshIn, RegisterIn, TelegramAuthIn, TokenPair
 from app.schemas.user import UserOut
 from app.services import auth as auth_svc
@@ -42,5 +44,8 @@ async def logout(payload: RefreshIn, session: SessionDep) -> None:
 
 
 @router.get("/me", response_model=UserOut)
-async def me(user: CurrentUser) -> UserOut:
-    return UserOut.model_validate(user)
+async def me(user: CurrentUser, session: SessionDep) -> UserOut:
+    out = UserOut.model_validate(user)
+    if user.role == UserRole.SPECIALIST:
+        out.profile_complete = await has_profile_for_user(session, user.id)
+    return out

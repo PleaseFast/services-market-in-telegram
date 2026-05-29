@@ -10,7 +10,11 @@ from sqlalchemy import select
 from app.core.db import SessionLocal
 from app.core.security import hash_password
 from app.core.service_catalog import SERVICE_CATALOG
-from app.models.profile import CustomerProfile, SpecialistProfile
+from app.models.profile import (
+    CustomerProfile,
+    SpecialistProfile,
+    SpecialistProfileCategory,
+)
 from app.models.project import ProjectTemplate
 from app.models.service_catalog import ServiceCatalogItem
 from app.models.user import User, UserRole
@@ -86,14 +90,18 @@ async def _seed_demo_users(session) -> None:
         )
         session.add(specialist)
         await session.flush()
+        profile = SpecialistProfile(
+            user_id=specialist.id,
+            full_name="Demo Specialist",
+            age=29,
+            years_experience=5,
+            bio="Demo seeded specialist. Replace with real profile.",
+        )
+        session.add(profile)
+        await session.flush()
         session.add(
-            SpecialistProfile(
-                user_id=specialist.id,
-                full_name="Demo Specialist",
-                age=29,
-                category="Backend",
-                years_experience=5,
-                bio="Demo seeded specialist. Replace with real profile.",
+            SpecialistProfileCategory(
+                specialist_profile_id=profile.id, category="Backend"
             )
         )
         log.info("Created demo specialist %s / %s", DEMO_SPECIALIST_EMAIL, DEMO_PASSWORD)

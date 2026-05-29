@@ -28,7 +28,6 @@ class SpecialistProfile(UUIDPK, Timestamps, Base):
     )
     full_name: Mapped[str] = mapped_column(String(120), nullable=False)
     age: Mapped[int] = mapped_column(Integer, nullable=False)
-    category: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     years_experience: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     bio: Mapped[str] = mapped_column(Text, nullable=False, default="")
     avatar_id: Mapped[str] = mapped_column(
@@ -44,6 +43,25 @@ class SpecialistProfile(UUIDPK, Timestamps, Base):
     services: Mapped[list["SpecialistService"]] = relationship(
         cascade="all, delete-orphan",
     )
+    category_rows: Mapped[list["SpecialistProfileCategory"]] = relationship(
+        cascade="all, delete-orphan",
+        order_by="SpecialistProfileCategory.category",
+    )
+
+    @property
+    def categories(self) -> list[str]:
+        return [row.category for row in self.category_rows]
+
+
+class SpecialistProfileCategory(Base):
+    __tablename__ = "specialist_profile_categories"
+
+    specialist_profile_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("specialist_profiles.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    category: Mapped[str] = mapped_column(String(80), primary_key=True, index=True)
 
 
 class CustomerProfile(UUIDPK, Timestamps, Base):
