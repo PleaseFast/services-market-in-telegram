@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +13,7 @@ import { Select } from "@/components/ui/select";
 import { useCreateProject, useTemplates } from "@/features/projects/api";
 import { useAuthStore } from "@/stores/auth";
 import { groupByCategory } from "@/lib/templates";
-import { CATEGORIES, clampCategory, suggestCategory } from "@/lib/categories";
+import { CATEGORIES, categoryLabel, clampCategory, suggestCategory } from "@/lib/categories";
 import {
   clearPendingProject,
   loadPendingProject,
@@ -20,22 +21,22 @@ import {
   type PendingProjectValues,
 } from "@/lib/pendingProject";
 import type { ProjectTemplate } from "@/features/projects/types";
+import { ApiError } from "@/lib/api";
 
-const schema = z.object({
-  title: z.string().min(4, "At least 4 characters"),
-  description: z.string().min(10, "At least 10 characters"),
-  budget: z.coerce.number().min(0),
-  currency: z.string().length(3).default("USD"),
-  deadline: z.string().optional().or(z.literal("")),
-  template_id: z.string().optional(),
-  category: z.enum(CATEGORIES),
-});
-
-type FormValues = z.infer<typeof schema>;
+type FormValues = {
+  title: string;
+  description: string;
+  budget: number;
+  currency: string;
+  deadline?: string;
+  template_id?: string;
+  category: (typeof CATEGORIES)[number];
+};
 
 const DEFAULT_VISIBLE_PER_CATEGORY = 3;
 
 export function CreateProject() {
+  const { t } = useTranslation();
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
   const { data: templates } = useTemplates();
@@ -45,11 +46,21 @@ export function CreateProject() {
   const [err, setErr] = useState<string | null>(null);
   const autosubmitFiredRef = useRef(false);
   const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
-  // Tracks the title we last wrote on the user's behalf from a template. If
-  // the title field ever diverges from this value while a template is
-  // attached, we treat that as the user customizing the project and detach
-  // the template (clear template_id + suggested brief).
   const templateAppliedTitleRef = useRef<string | null>(null);
+
+  const schema = useMemo(
+    () =>
+      z.object({
+        title: z.string().min(4, t("validation.title.min", { count: 4 })),
+        description: z.string().min(10, t("validation.description.min", { count: 10 })),
+        budget: z.coerce.number().min(0),
+        currency: z.string().length(3).default("USD"),
+        deadline: z.string().optional().or(z.literal("")),
+        template_id: z.string().optional(),
+        category: z.enum(CATEGORIES),
+      }),
+    [t],
+  );
 
   const {
     register,
@@ -70,15 +81,10 @@ export function CreateProject() {
 
   const [suggestedBrief, setSuggestedBrief] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
-  // Until the user touches the category select, we keep auto-suggesting from
-  // title + description. Once they pick a value manually, lock in.
   const [categoryTouched, setCategoryTouched] = useState(false);
 
   const grouped = useMemo(() => groupByCategory(templates ?? []), [templates]);
 
-  // RHF's register handles the textarea ref via {...register("description")}; we
-  // also need our own ref for focusing after accepting the suggestion. Compose
-  // both into one ref callback.
   const descriptionRegister = register("description");
   const setDescriptionRef = useCallback(
     (node: HTMLTextAreaElement | null) => {
@@ -88,25 +94,14 @@ export function CreateProject() {
     [descriptionRegister],
   );
 
-  function pickTemplate(t: ProjectTemplate) {
-    // Picking a template means switching project context entirely: title is
-    // always replaced with the template title, and the Details textarea is
-    // fully cleared so the previous template's brief (or any manual text)
-    // doesn't bleed into the new context. The suggestion flow then re-arms
-    // automatically because the textarea is empty again.
-    //
-    // We also stamp the just-applied title into a ref. The detach effect
-    // below uses it to tell "this title came from a template" apart from
-    // "the user edited the title", and clears template_id on user edits.
-    templateAppliedTitleRef.current = t.title;
-    setValue("template_id", t.id, { shouldDirty: true });
-    setValue("title", t.title, { shouldDirty: true, shouldValidate: true });
+  function pickTemplate(tpl: ProjectTemplate) {
+    templateAppliedTitleRef.current = tpl.title;
+    setValue("template_id", tpl.id, { shouldDirty: true });
+    setValue("title", tpl.title, { shouldDirty: true, shouldValidate: true });
     setValue("description", "", { shouldDirty: true, shouldValidate: false });
-    // Picking a template is an explicit category assignment — it overrides
-    // both the keyword suggestion and any prior user choice.
-    setValue("category", clampCategory(t.category), { shouldDirty: true, shouldValidate: true });
+    setValue("category", clampCategory(tpl.category), { shouldDirty: true, shouldValidate: true });
     setCategoryTouched(true);
-    setSuggestedBrief(t.description_template);
+    setSuggestedBrief(tpl.description_template);
   }
 
   function acceptSuggestion() {
@@ -115,7 +110,6 @@ export function CreateProject() {
       shouldDirty: true,
       shouldValidate: true,
     });
-    // Move the cursor to the end and refocus.
     requestAnimationFrame(() => {
       const node = descriptionRef.current;
       if (!node) return;
@@ -134,23 +128,20 @@ export function CreateProject() {
     acceptSuggestion();
   }
 
-  // Apply ?template_id from the URL (used by the landing page category grid).
-  // Same context-switch semantics as picking a template inline.
   useEffect(() => {
     const tid = params.get("template_id");
     if (!tid || !templates) return;
-    const t = templates.find((x) => x.id === tid);
-    if (!t) return;
-    templateAppliedTitleRef.current = t.title;
-    setValue("template_id", t.id);
-    setValue("title", t.title);
+    const tpl = templates.find((x) => x.id === tid);
+    if (!tpl) return;
+    templateAppliedTitleRef.current = tpl.title;
+    setValue("template_id", tpl.id);
+    setValue("title", tpl.title);
     setValue("description", "");
-    setValue("category", clampCategory(t.category));
+    setValue("category", clampCategory(tpl.category));
     setCategoryTouched(true);
-    setSuggestedBrief(t.description_template);
+    setSuggestedBrief(tpl.description_template);
   }, [params, templates, setValue]);
 
-  // Rehydrate pending form from sessionStorage on mount.
   useEffect(() => {
     const pending = loadPendingProject();
     if (pending) {
@@ -158,19 +149,13 @@ export function CreateProject() {
         ...pending.values,
         category: clampCategory(pending.values.category),
       } as Partial<FormValues> as FormValues);
-      // If the rehydrated draft is attached to a template, treat its title as
-      // the template-applied title so editing it correctly detaches the
-      // template (rather than detaching immediately on mount).
       if (pending.values.template_id) {
         templateAppliedTitleRef.current = pending.values.title ?? null;
       }
-      // A stashed draft already had a category — respect it.
       if (pending.values.category) setCategoryTouched(true);
     }
   }, [reset]);
 
-  // Auto-suggest the category from title + description until the user touches
-  // the select. Runs whenever the input text changes.
   useEffect(() => {
     if (categoryTouched) return;
     const suggested = suggestCategory(titleValue, descriptionValue);
@@ -179,56 +164,39 @@ export function CreateProject() {
     }
   }, [titleValue, descriptionValue, categoryTouched, categoryValue, setValue]);
 
-  // Apply ?title= from the URL — used by the landing-page search input, which
-  // routes here as a "start a project request" entry point. Precedence:
-  //   1. ?template_id wins (full template context-switch handled above).
-  //   2. A rehydrated pending draft with a title wins (user already has work).
-  //   3. Otherwise, prefill the title from ?title= and strip it from the URL
-  //      so it doesn't re-apply on later navigation.
   useEffect(() => {
-    const t = params.get("title");
-    if (!t) return;
+    const titleParam = params.get("title");
+    if (!titleParam) return;
     if (params.get("template_id")) return;
     const pending = loadPendingProject();
     if (pending && (pending.values.title ?? "").length > 0) return;
-    setValue("title", t, { shouldDirty: true, shouldValidate: true });
+    setValue("title", titleParam, { shouldDirty: true, shouldValidate: true });
     const next = new URLSearchParams(params);
     next.delete("title");
     setParams(next, { replace: true });
   }, [params, setParams, setValue]);
 
-  // Detach the template when the user edits the inherited title. Runs after
-  // every title or template_id change; only fires the detach when there is a
-  // template attached AND the current title no longer matches what the
-  // template put there.
   useEffect(() => {
     if (!templateId) return;
     if (titleValue === templateAppliedTitleRef.current) return;
     templateAppliedTitleRef.current = null;
     setValue("template_id", undefined, { shouldDirty: true });
-    // The brief suggestion is meaningful only while the project is attached
-    // to the template that produced it; once we detach, drop the suggestion.
     setSuggestedBrief(null);
   }, [titleValue, templateId, setValue]);
 
-  // Auto-submit after returning from auth, if intent was publish.
   useEffect(() => {
     if (autosubmitFiredRef.current) return;
     if (params.get("autosubmit") !== "1") return;
     const pending = loadPendingProject();
     if (!pending) {
-      // Nothing to auto-submit — clean URL and stop.
       params.delete("autosubmit");
       setParams(params, { replace: true });
       return;
     }
-    if (!isAuthed) return; // wait for auth bootstrap
+    if (!isAuthed) return;
 
     if (user!.role !== "customer") {
-      setErr(
-        "You're signed in as a specialist, but only customers can publish projects. " +
-          "Sign out and create a customer account to publish this draft.",
-      );
+      setErr(t("customer.create.wrongRole"));
       clearPendingProject();
       params.delete("autosubmit");
       setParams(params, { replace: true });
@@ -252,18 +220,16 @@ export function CreateProject() {
         nav(`/c/projects/${p.id}`, { replace: true });
       } catch (e: unknown) {
         autosubmitFiredRef.current = false;
-        setErr((e as Error).message);
+        setErr(e instanceof ApiError ? e.localized() : (e as Error).message);
         params.delete("autosubmit");
         setParams(params, { replace: true });
       }
     })();
-  }, [params, setParams, isAuthed, user, create, nav]);
+  }, [params, setParams, isAuthed, user, create, nav, t]);
 
   async function onSubmit(values: FormValues, publish: boolean) {
     setErr(null);
 
-    // Delayed auth: if the visitor is anonymous and wants to publish,
-    // stash the draft and bounce them to the customer register flow.
     if (publish && !isAuthed) {
       const payload: PendingProjectValues = {
         title: values.title,
@@ -275,13 +241,11 @@ export function CreateProject() {
         category: values.category,
       };
       savePendingProject(payload);
-      // Exit guest mode if applicable so the auth flow is clean.
       useAuthStore.getState().exitGuest();
       nav("/register?next=/c/new&role=customer&autosubmit=1");
       return;
     }
 
-    // "Save as draft" requires an account too — same redirect, but no autosubmit.
     if (!isAuthed) {
       const payload: PendingProjectValues = {
         title: values.title,
@@ -312,12 +276,10 @@ export function CreateProject() {
       clearPendingProject();
       nav(`/c/projects/${p.id}`);
     } catch (e: unknown) {
-      setErr((e as Error).message);
+      setErr(e instanceof ApiError ? e.localized() : (e as Error).message);
     }
   }
 
-  // If we're auto-submitting, render a tiny waiting state so the user sees
-  // continuity rather than the form briefly re-appearing.
   if (
     params.get("autosubmit") === "1" &&
     isAuthed &&
@@ -326,7 +288,7 @@ export function CreateProject() {
   ) {
     return (
       <div className="max-w-3xl mx-auto py-16 text-center">
-        <p className="text-muted-foreground text-sm">Publishing your project…</p>
+        <p className="text-muted-foreground text-sm">{t("customer.create.publishing")}</p>
       </div>
     );
   }
@@ -338,11 +300,11 @@ export function CreateProject() {
       {!isAuthed && (
         <Card className="border-dashed">
           <CardContent className="pt-6 text-sm text-muted-foreground">
-            You can describe your project without an account. We&apos;ll ask you to sign in only when you click <span className="font-medium text-foreground">Publish</span>.
+            {t("customer.create.anonHint", { publishWord: t("customer.create.publishWord") })}
             <span className="ml-2">
-              Already have one?{" "}
+              {t("customer.create.alreadyHaveAccount")}{" "}
               <Link to="/login?next=/c/new" className="text-foreground underline-offset-4 hover:underline">
-                Sign in
+                {t("customer.create.signIn")}
               </Link>
             </span>
           </CardContent>
@@ -351,17 +313,17 @@ export function CreateProject() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">Describe your project</CardTitle>
+          <CardTitle className="text-base font-medium">{t("customer.create.describe")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form className="space-y-5">
             <div className="space-y-1.5">
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="title">{t("customer.create.title")}</Label>
               <Input id="title" {...register("title")} />
               {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="category">{t("customer.create.category")}</Label>
               <Select
                 id="category"
                 {...register("category", {
@@ -370,21 +332,19 @@ export function CreateProject() {
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {categoryLabel(c)}
                   </option>
                 ))}
               </Select>
               {!categoryTouched && (
-                <p className="text-xs text-muted-foreground">
-                  Auto-detected from title and details. Pick a different one if needed.
-                </p>
+                <p className="text-xs text-muted-foreground">{t("customer.create.categoryHint")}</p>
               )}
               {errors.category && (
                 <p className="text-xs text-destructive">{errors.category.message}</p>
               )}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="description">Details</Label>
+              <Label htmlFor="description">{t("customer.create.details")}</Label>
               <Textarea
                 id="description"
                 rows={8}
@@ -399,10 +359,11 @@ export function CreateProject() {
                     onClick={acceptSuggestion}
                     className="rounded-full border px-3 py-1 text-xs hover:bg-muted"
                   >
-                    Insert suggested brief
+                    {t("customer.create.suggestionInsert")}
                   </button>
                   <span className="text-xs text-muted-foreground">
-                    or press <kbd className="rounded border px-1 py-px text-[10px] font-medium">Tab</kbd>
+                    {t("customer.create.suggestionOrTab")}{" "}
+                    <kbd className="rounded border px-1 py-px text-[10px] font-medium">Tab</kbd>
                   </span>
                 </div>
               )}
@@ -410,15 +371,15 @@ export function CreateProject() {
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="budget">Budget</Label>
+                <Label htmlFor="budget">{t("customer.create.budget")}</Label>
                 <Input id="budget" type="number" {...register("budget")} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="currency">Currency</Label>
+                <Label htmlFor="currency">{t("customer.create.currency")}</Label>
                 <Input id="currency" maxLength={3} {...register("currency")} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="deadline">Deadline</Label>
+                <Label htmlFor="deadline">{t("customer.create.deadline")}</Label>
                 <Input id="deadline" type="date" {...register("deadline")} />
               </div>
             </div>
@@ -430,14 +391,14 @@ export function CreateProject() {
                 disabled={isSubmitting}
                 onClick={handleSubmit((v) => onSubmit(v, false))}
               >
-                Save as draft
+                {t("customer.create.saveDraft")}
               </Button>
               <Button
                 type="button"
                 disabled={isSubmitting}
                 onClick={handleSubmit((v) => onSubmit(v, true))}
               >
-                {isAuthed ? "Publish" : "Publish — sign in & post"}
+                {isAuthed ? t("customer.create.publish") : t("customer.create.publishSignIn")}
               </Button>
             </div>
           </form>
@@ -446,8 +407,8 @@ export function CreateProject() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">Pick a template (optional)</CardTitle>
-          <CardDescription>Need a starting point? Picking a template replaces your title and clears the brief so you can start from a popular request.</CardDescription>
+          <CardTitle className="text-base font-medium">{t("customer.create.templatesTitle")}</CardTitle>
+          <CardDescription>{t("customer.create.templatesHint")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-5">
@@ -458,24 +419,24 @@ export function CreateProject() {
               return (
                 <div key={category} className="space-y-2">
                   <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    {category}
+                    {categoryLabel(category)}
                     <span className="ml-2 text-muted-foreground/60 normal-case tracking-normal">
                       {items.length}
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {visible.map((t) => (
+                    {visible.map((tpl) => (
                       <button
-                        key={t.id}
+                        key={tpl.id}
                         type="button"
-                        onClick={() => pickTemplate(t)}
+                        onClick={() => pickTemplate(tpl)}
                         className={
-                          templateId === t.id
+                          templateId === tpl.id
                             ? "rounded-full border px-3 py-1 text-xs bg-primary text-primary-foreground border-primary"
                             : "rounded-full border px-3 py-1 text-xs hover:bg-muted"
                         }
                       >
-                        {t.title}
+                        {tpl.title}
                       </button>
                     ))}
                     {items.length > DEFAULT_VISIBLE_PER_CATEGORY && (
@@ -486,7 +447,9 @@ export function CreateProject() {
                         }
                         className="rounded-full border border-dashed px-3 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
                       >
-                        {expanded ? "Show less" : `+${hiddenCount} more`}
+                        {expanded
+                          ? t("customer.create.showLess")
+                          : t("customer.create.showMore", { count: hiddenCount })}
                       </button>
                     )}
                   </div>

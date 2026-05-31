@@ -1,0 +1,558 @@
+{
+  "common": {
+    "appName": "Doings",
+    "appTitle": "Doings — IT Freelance Marketplace",
+    "appTagline": "Telegram-native IT freelance marketplace.",
+    "actions": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "edit": "Edit",
+      "back": "Back",
+      "next": "Next",
+      "create": "Create",
+      "submit": "Submit",
+      "loading": "Loading…",
+      "saving": "Saving…",
+      "publishing": "Publishing…",
+      "search": "Search"
+    },
+    "states": {
+      "loading": "Loading…",
+      "saving": "Saving…",
+      "error": "Something went wrong",
+      "empty": "Empty"
+    },
+    "language": {
+      "label": "Language",
+      "ru": "Russian",
+      "en": "English",
+      "toggle": "Toggle language"
+    },
+    "guest": {
+      "badge": "Guest",
+      "banner": "Browsing as a guest — applying, chatting, and posting projects need an account.",
+      "exitTitle": "Exit guest mode",
+      "createAccount": "Create account",
+      "signIn": "Sign in"
+    },
+    "nav": {
+      "browseProjects": "Browse projects",
+      "dashboard": "Dashboard",
+      "projects": "Projects",
+      "profile": "Profile",
+      "archive": "Archive",
+      "myProjects": "My projects",
+      "newProject": "New project",
+      "specialists": "Specialists",
+      "notifications": "Notifications",
+      "signOut": "Sign out",
+      "signIn": "Sign in",
+      "signUp": "Sign up",
+      "forCustomers": "For customers",
+      "forSpecialists": "For specialists",
+      "themeToggle": "Toggle theme"
+    }
+  },
+  "validation": {
+    "required": "Required",
+    "email": "Enter a valid email",
+    "passwordMin": "Min {{count}} characters",
+    "min": "Min {{count}} characters",
+    "max": "Max {{count}} characters",
+    "title.min": "At least {{count}} characters",
+    "description.min": "At least {{count}} characters",
+    "endYearRequired": "End year is required",
+    "endYearAfterStart": "End year must be after start year",
+    "failed": "Please check the form fields"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in",
+      "emailLabel": "Email",
+      "passwordLabel": "Password",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "noAccount": "No account?",
+      "createOne": "Create one",
+      "notReady": "Not ready to sign in?",
+      "browseAsGuest": "Browse projects as a guest"
+    },
+    "register": {
+      "title": "Create your account",
+      "intentCustomer": "You're publishing a project — we'll create a customer account so you can manage it.",
+      "intentSpecialist": "Set up your specialist account to apply to projects.",
+      "roleLabel": "I am a…",
+      "roleCustomer": "Customer",
+      "roleSpecialist": "Specialist",
+      "emailLabel": "Email",
+      "passwordLabel": "Password",
+      "submit": "Create account",
+      "submitting": "Creating…",
+      "haveAccount": "Already have one?",
+      "signIn": "Sign in",
+      "notReady": "Not ready to sign up?",
+      "browseAsGuest": "Browse projects as a guest"
+    }
+  },
+  "landing": {
+    "title": "Quick search for IT specialists",
+    "openProjectsWithCount": "{{count}} open projects — find the right specialist or post your own.",
+    "noOpenProjects": "Find the right specialist or post your own project.",
+    "search": {
+      "placeholder": "Service or specialist…",
+      "submit": "Find"
+    },
+    "openDashboard": "Open dashboard",
+    "iAmSpecialist": "I'm a specialist",
+    "stats": {
+      "withCount": "{{count}} projects open right now, with new ones posted daily.",
+      "empty": "Be the first — post a project today."
+    },
+    "features": {
+      "scopeTitle": "Specialists scope the job",
+      "scopeBody": "Tell us about your project. Pros read it and respond with proposals.",
+      "priceTitle": "Best price",
+      "priceBody": "Compare quotes from multiple specialists and pick the one that fits.",
+      "verifiedTitle": "Verified pros",
+      "verifiedBody": "We check identity, experience, and the work history of every specialist.",
+      "reviewsTitle": "Real reviews",
+      "reviewsBody": "Reviews can only be left after the job is finished — no astroturf."
+    },
+    "category": {
+      "showMore": "Show {{count}} more",
+      "showLess": "Show less"
+    }
+  },
+  "notFound": {
+    "title": "404",
+    "subtitle": "This page wandered off.",
+    "back": "Take me home"
+  },
+  "shell": {
+    "footer": "Doings — Telegram-native IT freelance marketplace."
+  },
+  "projects": {
+    "status": {
+      "draft": "Draft",
+      "open": "Open",
+      "paused": "Paused",
+      "in_progress": "In progress",
+      "completed": "Completed",
+      "archived": "Archived",
+      "canceled": "Canceled"
+    },
+    "actions": {
+      "publish": "Publish",
+      "pause": "Pause search",
+      "resume": "Resume search",
+      "edit": "Edit",
+      "complete": "Mark complete",
+      "archive": "Archive",
+      "delete": "Delete",
+      "select": "Select",
+      "apply": "Apply",
+      "applying": "Sending…",
+      "withdraw": "Withdraw"
+    },
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "budget": "Budget",
+      "currency": "Currency",
+      "deadline": "Deadline",
+      "category": "Category",
+      "coverLetter": "Cover letter"
+    },
+    "confirmDelete": "Delete this project? This can't be undone.",
+    "labels": {
+      "budgetDeadline": "Budget: {{budget}} {{currency}} · Deadline: {{deadline}}",
+      "applicants": "Applicants ({{count}})",
+      "applicantsHint": "Tap a specialist to view their full profile, or pick one to start the project.",
+      "noApplicants": "No applicants yet.",
+      "yourReview": "Your review",
+      "subjectSpecialist": "the specialist",
+      "subjectCustomer": "the customer",
+      "anonymous": "Anonymous",
+      "noRating": "no rating yet",
+      "ratingFormat": "{{value}} ★ ({{count}})"
+    }
+  },
+  "customer": {
+    "dashboard": {
+      "welcome": "Welcome back",
+      "newProject": "+ New project",
+      "summary": {
+        "drafts": "Drafts",
+        "open": "Open",
+        "inProgress": "In progress"
+      },
+      "viewAll": "View all",
+      "recent": "Recent",
+      "empty": "No projects yet — create your first one."
+    },
+    "projects": {
+      "title": "My projects",
+      "empty": "No projects yet.",
+      "createOne": "Create one"
+    },
+    "profile": {
+      "title": "Your profile",
+      "avatar": "Avatar",
+      "detailsHeader": "Customer details",
+      "displayName": "Display name",
+      "displayNamePlaceholder": "e.g. Acme Inc.",
+      "displayNameMin": "Display name must be at least {{count}} characters",
+      "displayNameMax": "Display name is too long",
+      "saved": "Profile saved.",
+      "savingShort": "Saving…",
+      "saveAndContinue": "Save and continue",
+      "saveDetails": "Save details",
+      "onboardingHint": "Add a display name so specialists know who they're working with. This is how you'll appear on every project you post."
+    },
+    "create": {
+      "anonHint": "You can describe your project without an account. We'll ask you to sign in only when you click {{publishWord}}.",
+      "publishWord": "Publish",
+      "alreadyHaveAccount": "Already have one?",
+      "signIn": "Sign in",
+      "describe": "Describe your project",
+      "title": "Title",
+      "category": "Category",
+      "categoryHint": "Auto-detected from title and details. Pick a different one if needed.",
+      "details": "Details",
+      "suggestionInsert": "Insert suggested brief",
+      "suggestionOrTab": "or press",
+      "budget": "Budget",
+      "currency": "Currency",
+      "deadline": "Deadline",
+      "saveDraft": "Save as draft",
+      "publish": "Publish",
+      "publishSignIn": "Publish — sign in & post",
+      "publishing": "Publishing your project…",
+      "templatesTitle": "Pick a template (optional)",
+      "templatesHint": "Need a starting point? Picking a template replaces your title and clears the brief so you can start from a popular request.",
+      "showLess": "Show less",
+      "showMore": "+{{count}} more",
+      "wrongRole": "You're signed in as a specialist, but only customers can publish projects. Sign out and create a customer account to publish this draft."
+    },
+    "edit": {
+      "title": "Edit project",
+      "titleField": "Title",
+      "category": "Category",
+      "details": "Details",
+      "budget": "Budget",
+      "currency": "Currency",
+      "deadline": "Deadline",
+      "save": "Save changes",
+      "cancel": "Cancel",
+      "notEditable": "This project can no longer be edited (status: {{status}})."
+    }
+  },
+  "specialist": {
+    "dashboard": {
+      "title": "Dashboard",
+      "finishProfile": "Finish your profile",
+      "finishProfileHint": "You need a profile before you can apply to projects.",
+      "createProfile": "Create profile",
+      "browseProjects": "Browse projects",
+      "browseProjectsHint": "Find new opportunities matching your skills.",
+      "openFeed": "Open feed",
+      "active": "Active projects",
+      "engagedCount_one": "{{count}} engaged",
+      "engagedCount_other": "{{count}} engaged",
+      "empty": "No active projects yet.",
+      "yourRating": "Your rating",
+      "yourRatingHint": "Built from customer reviews"
+    },
+    "feed": {
+      "titleOpen": "Open projects",
+      "titleGuest": "Browse open projects",
+      "scope": "Showing projects in: {{categories}} · update your profile to change categories",
+      "searchPlaceholder": "Search projects…",
+      "minBudget": "Min $",
+      "maxBudget": "Max $",
+      "minBudgetAria": "Minimum budget",
+      "maxBudgetAria": "Maximum budget",
+      "sortAria": "Sort",
+      "sortNewest": "Newest first",
+      "sortViewed": "Viewed first",
+      "filters": "Filters",
+      "clear": "Clear",
+      "clearAll": "Clear all filters",
+      "emptyFiltered": "No open projects match your filters.",
+      "emptyScoped": "No open projects in {{categories}} right now.",
+      "emptyAll": "No open projects right now."
+    },
+    "detail": {
+      "applyTitle": "Apply",
+      "applyHint": "Add a short cover letter (optional).",
+      "coverLetter": "Cover letter",
+      "coverLetterPlaceholder": "Hi! Here's why I'm a good fit…",
+      "submit": "Send application",
+      "submitting": "Sending…",
+      "alreadyApplied": "You've already applied.",
+      "applicationSent": "✅ Application sent. Customer will be notified.",
+      "higherRated_one": "{{count}} applicant has a higher rating than you",
+      "higherRated_other": "{{count}} applicants have a higher rating than you",
+      "openChat": "Open chat",
+      "withdrawApplication": "Withdraw application",
+      "publishedPrefix": "Published: {{date}}",
+      "notFound": "Project not found."
+    },
+    "archive": {
+      "title": "Archive",
+      "empty": "Nothing here yet."
+    },
+    "public": {
+      "loading": "Loading…",
+      "notFound": "We couldn't find this specialist.",
+      "yearsExperience": "{{years}}+ years experience",
+      "reviewsCount_one": "{{value}} · {{count}} review",
+      "reviewsCount_other": "{{value}} · {{count}} reviews",
+      "servicesTitle": "Services and work conditions",
+      "experienceTitle": "Education and experience",
+      "work": "Work experience",
+      "education": "Education",
+      "achievements": "Achievements",
+      "emptyWork": "No work experience listed.",
+      "emptyEducation": "No education listed.",
+      "emptyAchievements": "No achievements listed.",
+      "yearsRangePresent": "{{start}} – present"
+    },
+    "profile": {
+      "title": "Your profile",
+      "avatar": "Avatar",
+      "details": "Specialist details",
+      "fullName": "Full name",
+      "age": "Age",
+      "yearsExperience": "Years experience",
+      "specializations": "Specializations",
+      "specializationsHint": "Pick one or more — you'll see projects from every category you select.",
+      "pickAtLeastOne": "Pick at least one category",
+      "bioRequired": "Bio is required",
+      "bio": "Bio",
+      "saved": "Profile saved.",
+      "savingShort": "Saving…",
+      "saveAndContinue": "Save and continue",
+      "saveDetails": "Save details",
+      "onboardingHint": "Complete your specialist details to start receiving projects. Once you save you'll be taken to the open-projects feed.",
+      "servicesHeader": "Services and work conditions",
+      "servicesEdit": "Edit",
+      "servicesDone": "Done",
+      "experienceHeader": "Education and experience",
+      "timelineWork": "Work experience",
+      "timelineEducation": "Education",
+      "timelineAchievements": "Achievements",
+      "addWork": "Add work experience",
+      "addEducation": "Add education",
+      "addAchievement": "Add achievement",
+      "currentWork": "Currently working here",
+      "currentStudy": "Currently studying here",
+      "currentPresent": "Present time"
+    },
+    "timeline": {
+      "title": "Title",
+      "description": "Description",
+      "startYear": "Start year",
+      "endYear": "End year",
+      "saving": "Saving…",
+      "saveChanges": "Save changes",
+      "add": "Add",
+      "cancel": "Cancel",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "edit": "Edit",
+      "delete": "Delete",
+      "confirmDelete": "Delete this entry?",
+      "empty": "No entries yet.",
+      "yearsRangePresent": "{{start}} – present",
+      "validation": {
+        "min": "At least {{count}} characters",
+        "endRequired": "End year is required",
+        "endBeforeStart": "End year must be after start year"
+      }
+    },
+    "services": {
+      "empty": "No services listed yet.",
+      "otherCategories": "Other categories",
+      "save": "Save services",
+      "saving": "Saving…",
+      "priceFor": "Price for {{label}}",
+      "currencyHint": "$"
+    },
+    "reviews": {
+      "title": "Reviews",
+      "loading": "Loading…",
+      "empty": "No reviews yet.",
+      "byAuthor": "by {{author}}",
+      "count_one": "{{value}} · {{count}} review",
+      "count_other": "{{value}} · {{count}} reviews"
+    },
+    "catalog": {
+      "title": "Specialists",
+      "filters": {
+        "categoryAria": "Filter by category",
+        "anyCategory": "Any category",
+        "ratingAria": "Filter by minimum rating",
+        "anyRating": "Any rating",
+        "gte": "≥ {{value}}★",
+        "fiveStars": "5★"
+      },
+      "empty": "No specialists match these filters.",
+      "yearsShort": "{{count}}y"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "newBadge": "new",
+    "markRead": "Mark as read",
+    "empty": "No notifications yet.",
+    "types": {
+      "new_application": "New application",
+      "application_accepted": "Application accepted",
+      "application_rejected": "Application rejected",
+      "specialist_selected": "Specialist selected",
+      "project_completed": "Project completed",
+      "direct_offer_received": "Direct offer received",
+      "direct_offer_answered": "Direct offer answered",
+      "new_review": "New review"
+    }
+  },
+  "review": {
+    "title": "Leave a review",
+    "subtitle": "Rate {{subject}} (0–5 ★ in half-star steps) and leave an optional note.",
+    "placeholder": "What stood out?",
+    "submit": "Submit review",
+    "submitting": "Submitting…",
+    "yourReview": "Your review",
+    "thanks": "Thanks for your review!"
+  },
+  "guestPrompt": {
+    "title": "Sign in to continue",
+    "subtitle": "You need an account to {{action}}. Guests can only browse open projects.",
+    "defaultAction": "perform this action",
+    "actions": {
+      "apply": "apply to a project",
+      "openChat": "open a chat",
+      "publish": "publish a project",
+      "leaveReview": "leave a review"
+    },
+    "signUp": "Create account",
+    "signIn": "Sign in"
+  },
+  "customerInfo": {
+    "title": "About the customer",
+    "reviews": "Reviews",
+    "reviewsLoading": "Loading…",
+    "noReviews": "No reviews yet.",
+    "byAuthor": "by {{author}}",
+    "reviewsCount_one": "{{value}} · {{count}} review",
+    "reviewsCount_other": "{{value}} · {{count}} reviews",
+    "otherOpen": "Other open projects from this customer",
+    "noOtherOpen": "No other open projects right now.",
+    "deadlinePrefix": "Deadline: {{date}}"
+  },
+  "categories": {
+    "Frontend": "Frontend",
+    "Backend": "Backend",
+    "Bots": "Bots",
+    "Mobile": "Mobile",
+    "DevOps": "DevOps",
+    "Data": "Data",
+    "Design": "Design",
+    "AI": "AI",
+    "Other": "Other"
+  },
+  "errors": {
+    "common": {
+      "not_found": "Not found",
+      "conflict": "Conflict",
+      "forbidden": "Forbidden"
+    },
+    "auth": {
+      "email_taken": "Email already registered",
+      "invalid_credentials": "Invalid email or password",
+      "unknown_bot": "Unknown bot '{{bot}}'",
+      "telegram_missing_user": "initData missing user field",
+      "role_required": "Role required for first-time signup",
+      "refresh_invalid": "Invalid refresh token",
+      "token_wrong_type": "Wrong token type",
+      "refresh_revoked": "Refresh token revoked",
+      "refresh_expired": "Refresh token expired",
+      "user_not_found": "User not found"
+    },
+    "users": {
+      "language_unsupported": "Language '{{language}}' is not supported"
+    },
+    "projects": {
+      "not_found": "Project not found",
+      "not_yours": "Not your project",
+      "not_visible": "Project not visible",
+      "customer_only": "Only customers can perform this action",
+      "bad_state_edit": "Only draft/open/paused projects can be edited",
+      "bad_state_publish": "Only draft projects can be published",
+      "bad_state_archive": "Only completed/canceled projects can be archived",
+      "bad_state_cancel": "Only draft/open/paused projects can be canceled",
+      "bad_state_pause": "Only open projects can be paused",
+      "bad_state_resume": "Only paused projects can be resumed",
+      "bad_state_delete": "Active projects cannot be deleted",
+      "not_open": "Project not open",
+      "not_in_progress": "Project is not in progress",
+      "specialist_did_not_apply": "Specialist has not applied to this project"
+    },
+    "applications": {
+      "specialist_only": "Only specialists can apply",
+      "project_not_open": "Project is not open for applications",
+      "already_applied": "Already applied to this project",
+      "not_found": "Application not found",
+      "not_yours": "Not your application",
+      "not_pending": "Application is not pending"
+    },
+    "offers": {
+      "duplicate": "Offer already exists",
+      "not_found": "Offer not found",
+      "not_yours": "Not your offer",
+      "already_answered": "Offer already answered"
+    },
+    "reviews": {
+      "project_not_completed": "Project not completed",
+      "not_participant": "You did not participate in this project",
+      "no_counterparty": "No counterparty to review",
+      "duplicate": "You already reviewed this project"
+    },
+    "profiles": {
+      "specialist_only": "Only specialists can manage a specialist profile",
+      "category_required": "At least one category is required",
+      "customer_only": "Only customers can manage a customer profile",
+      "no_specialist_profile": "Specialist profile not created",
+      "specialist_not_found": "Profile not found",
+      "customer_not_found": "Profile not found"
+    },
+    "services": {
+      "specialist_only": "Only specialists manage services",
+      "no_profile": "Create your specialist profile first",
+      "duplicate_slug": "Duplicate service slug in request",
+      "unknown_slugs": "Unknown service slugs: {{slugs}}"
+    },
+    "chat": {
+      "customer_mismatch": "Customer mismatch",
+      "project_closed": "Project closed to chat",
+      "thread_not_found": "Thread not found",
+      "thread_closed": "Thread is closed",
+      "not_member": "Not a member of this thread"
+    },
+    "notifications": {
+      "not_found": "Not found"
+    },
+    "timeline": {
+      "specialist_only": "Only specialists have a timeline",
+      "no_profile": "Create your specialist profile first",
+      "item_not_found": "Timeline item not found",
+      "end_year_required": "End year is required when not current",
+      "end_year_before_start": "End year must be after start year"
+    },
+    "validation": {
+      "failed": "Please check the form fields"
+    }
+  }
+}

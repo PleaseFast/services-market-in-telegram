@@ -1,0 +1,16 @@
+{
+  "notifications": {
+    "fallback_title": "your project",
+    "fallback": "🔔 {type}",
+    "application_accepted": "🎉 You were selected for: <b>{title}</b>",
+    "application_rejected": "❌ Customer chose someone else for <b>{title}</b>",
+    "project_completed": "✅ Project completed: <b>{title}</b>. Leave a review when you can.",
+    "direct_offer_received": "📨 Direct offer received for <b>{title}</b>",
+    "new_review_specialist": "⭐ New review (rating {rating})",
+    "new_application": "📨 New application for <b>{title}</b>",
+    "specialist_selected": "✅ You selected a specialist for <b>{title}</b>",
+    "direct_offer_answered_accepted": "🔔 Your direct offer was accepted ✅",
+    "direct_offer_answered_declined": "🔔 Your direct offer was declined ❌",
+    "new_review_customer": "⭐ New review on you (rating {rating})"
+  }
+}

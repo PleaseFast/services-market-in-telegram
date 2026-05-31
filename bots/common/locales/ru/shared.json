@@ -1,0 +1,15 @@
+{
+  "shared": {
+    "not_allowed": "Недостаточно прав",
+    "sign_up_first": "Сначала зарегистрируйтесь в веб-приложении.",
+    "open_app": "🚀 Открыть Doings (Mini App)",
+    "language_changed": "Язык переключён на русский 🇷🇺",
+    "language_usage": "Использование: /lang ru или /lang en",
+    "unknown_language": "Неизвестный язык: {language}. Поддерживаются: {supported}.",
+    "error_prefix": "⚠️ {message}"
+  },
+  "lang_names": {
+    "ru": "Русский",
+    "en": "English"
+  }
+}

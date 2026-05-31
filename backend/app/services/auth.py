@@ -43,7 +43,7 @@ async def register_email(session: AsyncSession, email: str, password: str, role:
     email = email.strip().lower()
     existing = await get_user_by_email(session, email)
     if existing:
-        raise ConflictError("Email already registered")
+        raise ConflictError("auth.email_taken", message="Email already registered")
     user = User(email=email, password_hash=hash_password(password), role=role)
     session.add(user)
     await session.flush()
@@ -55,7 +55,7 @@ async def register_email(session: AsyncSession, email: str, password: str, role:
 async def login_email(session: AsyncSession, email: str, password: str) -> tuple[User, str, str]:
     user = await get_user_by_email(session, email.strip().lower())
     if not user or not user.password_hash or not verify_password(password, user.password_hash):
-        raise DomainError("Invalid credentials", status_code=401)
+        raise DomainError("auth.invalid_credentials", status_code=401, message="Invalid credentials")
     access, refresh = await _issue_tokens(session, user)
     await session.commit()
     return user, access, refresh
@@ -69,11 +69,20 @@ async def login_telegram(
 ) -> tuple[User, str, str]:
     token = settings.all_bot_tokens.get(bot)
     if not token:
-        raise DomainError(f"Unknown bot '{bot}'", status_code=400)
+        raise DomainError(
+            "auth.unknown_bot",
+            status_code=400,
+            params={"bot": bot},
+            message=f"Unknown bot '{bot}'",
+        )
     parsed = verify_telegram_init_data(init_data, token)
     user_field = parsed.get("user")
     if not user_field:
-        raise DomainError("initData missing user field", status_code=400)
+        raise DomainError(
+            "auth.telegram_missing_user",
+            status_code=400,
+            message="initData missing user field",
+        )
     tg_user = json.loads(user_field)
     tg_user_id = int(tg_user["id"])
     tg_username = tg_user.get("username")
@@ -81,7 +90,11 @@ async def login_telegram(
     user = await get_user_by_tg_id(session, tg_user_id)
     if user is None:
         if role is None:
-            raise DomainError("Role required for first-time signup", status_code=400)
+            raise DomainError(
+                "auth.role_required",
+                status_code=400,
+                message="Role required for first-time signup",
+            )
         user = User(role=role)
         session.add(user)
         await session.flush()
@@ -129,22 +142,32 @@ async def refresh_session(session: AsyncSession, refresh_token: str) -> tuple[st
     try:
         payload = decode_token(refresh_token)
     except Exception as e:
-        raise DomainError("Invalid refresh token", status_code=401) from e
+        raise DomainError(
+            "auth.refresh_invalid", status_code=401, message="Invalid refresh token"
+        ) from e
     if payload.get("type") != "refresh":
-        raise DomainError("Wrong token type", status_code=401)
+        raise DomainError(
+            "auth.token_wrong_type", status_code=401, message="Wrong token type"
+        )
 
     jti = payload["jti"]
     res = await session.execute(select(RefreshToken).where(RefreshToken.jti == jti))
     token_row = res.scalar_one_or_none()
     if token_row is None or token_row.revoked_at is not None:
-        raise DomainError("Refresh token revoked", status_code=401)
+        raise DomainError(
+            "auth.refresh_revoked", status_code=401, message="Refresh token revoked"
+        )
     if token_row.expires_at < datetime.now(UTC):
-        raise DomainError("Refresh token expired", status_code=401)
+        raise DomainError(
+            "auth.refresh_expired", status_code=401, message="Refresh token expired"
+        )
 
     token_row.revoked_at = datetime.now(UTC)
     user = await session.get(User, UUID(payload["sub"]))
     if user is None:
-        raise DomainError("User not found", status_code=401)
+        raise DomainError(
+            "auth.user_not_found", status_code=401, message="User not found"
+        )
     access, refresh = await _issue_tokens(session, user)
     await session.commit()
     return access, refresh

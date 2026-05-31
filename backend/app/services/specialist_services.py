@@ -15,19 +15,29 @@ async def replace_services(
     session: AsyncSession, user: User, payload: SpecialistServicesReplace
 ) -> None:
     if user.role != UserRole.SPECIALIST:
-        raise ForbiddenError("Only specialists manage services")
+        raise ForbiddenError(
+            "services.specialist_only", message="Only specialists manage services"
+        )
     profile = await get_profile_by_user(session, user.id)
     if profile is None:
-        raise ConflictError("Create your specialist profile first")
+        raise ConflictError(
+            "services.no_profile", message="Create your specialist profile first"
+        )
 
     slugs = [item.slug for item in payload.items]
     if len(set(slugs)) != len(slugs):
-        raise DomainError("Duplicate service slug in request")
+        raise DomainError(
+            "services.duplicate_slug", message="Duplicate service slug in request"
+        )
 
     catalog = await get_catalog_by_slugs(session, slugs)
     missing = [s for s in slugs if s not in catalog]
     if missing:
-        raise DomainError(f"Unknown service slugs: {', '.join(missing[:5])}")
+        raise DomainError(
+            "services.unknown_slugs",
+            params={"slugs": missing[:5]},
+            message=f"Unknown service slugs: {', '.join(missing[:5])}",
+        )
 
     # Replace-all: delete existing, insert new.
     await session.execute(

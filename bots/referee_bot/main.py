@@ -19,6 +19,8 @@ from aiogram.types import (
 from sqlalchemy import select
 
 from app.core.config import get_settings
+from app.core.i18n import DEFAULT as DEFAULT_LANG
+from app.core.i18n import normalize
 from app.models.application import Application, ApplicationStatus
 from app.models.chat import ChatThread
 from app.models.project import Project, ProjectStatus
@@ -26,8 +28,11 @@ from app.models.user import User, UserRole
 from app.services.chat_relay import get_or_open_thread, post_message
 from app.services.errors import DomainError
 from app.services.projects import select_specialist
-from bots.common.auth import update_chat_id
+from bots.common.auth import get_user_by_tg, update_chat_id
 from bots.common.db import SessionLocal
+from bots.common.i18n import t
+from bots.common.lang import ensure_user_language, language_for_user_id
+from bots.common.lang_command import handle_lang_command
 
 settings = get_settings()
 log = logging.getLogger("referee_bot")
@@ -37,73 +42,97 @@ class ChatState(StatesGroup):
     in_thread = State()
 
 
-def main_menu_customer() -> InlineKeyboardMarkup:
+def main_menu_customer(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="📋 My open projects", callback_data="cust_projects")],
+            [InlineKeyboardButton(
+                text=t("referee.menu.open_projects", lang), callback_data="cust_projects"
+            )],
         ]
     )
 
 
-def main_menu_specialist() -> InlineKeyboardMarkup:
+def main_menu_specialist(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="💬 My active chats", callback_data="spec_threads")],
+            [InlineKeyboardButton(
+                text=t("referee.menu.active_chats", lang), callback_data="spec_threads"
+            )],
         ]
     )
 
 
 async def _get_user(tg_user_id: int) -> User | None:
     async with SessionLocal() as session:
-        from bots.common.auth import get_user_by_tg
-
         return await get_user_by_tg(session, tg_user_id)
+
+
+async def _lang_for(tg_user_id: int, tg_user=None) -> str:
+    """Resolve language for an incoming-message handler.
+
+    Uses the persisted preference when available, else falls back to the
+    Telegram-reported language code on this message, else DEFAULT.
+    """
+    async with SessionLocal() as session:
+        user = await get_user_by_tg(session, tg_user_id)
+        if user is not None and user.language:
+            return normalize(user.language)
+    if tg_user is not None:
+        return normalize(getattr(tg_user, "language_code", None))
+    return DEFAULT_LANG
 
 
 async def on_start(message: Message, state: FSMContext) -> None:
     await state.clear()
     async with SessionLocal() as session:
         await update_chat_id(session, message.from_user.id, message.chat.id)
+        user = await get_user_by_tg(session, message.from_user.id)
+        lang = await ensure_user_language(session, user, message.from_user)
 
-    user = await _get_user(message.from_user.id)
     if user is None:
         await message.answer(
-            "👋 Welcome to <b>RefereeBot</b>!\n\n"
-            "I relay anonymous chats between customers and specialists.\n\n"
-            "First, sign up on the web app, then link your Telegram account from the Mini App.",
+            t("referee.welcome_unknown", lang),
             parse_mode="HTML",
         )
         return
 
     if user.role == UserRole.CUSTOMER:
         await message.answer(
-            "👋 Welcome back. Pick a project to talk to applicants anonymously.",
-            reply_markup=main_menu_customer(),
+            t("referee.welcome_customer", lang),
+            reply_markup=main_menu_customer(lang),
         )
     else:
         await message.answer(
-            "👋 Welcome back. Use /menu to see active chats with customers.",
-            reply_markup=main_menu_specialist(),
+            t("referee.welcome_specialist", lang),
+            reply_markup=main_menu_specialist(lang),
         )
 
 
 async def on_menu(message: Message) -> None:
+    lang = await _lang_for(message.from_user.id, message.from_user)
     user = await _get_user(message.from_user.id)
     if user is None:
-        await message.answer("Sign up on the web app first.")
+        await message.answer(t("shared.sign_up_first", lang))
         return
     if user.role == UserRole.CUSTOMER:
-        await message.answer("Customer menu", reply_markup=main_menu_customer())
+        await message.answer(
+            t("referee.menu.title_customer", lang),
+            reply_markup=main_menu_customer(lang),
+        )
     else:
-        await message.answer("Specialist menu", reply_markup=main_menu_specialist())
+        await message.answer(
+            t("referee.menu.title_specialist", lang),
+            reply_markup=main_menu_specialist(lang),
+        )
 
 
 # ---------------- Customer: list open projects ----------------
 
 async def cb_customer_projects(call: CallbackQuery) -> None:
+    lang = await _lang_for(call.from_user.id, call.from_user)
     user = await _get_user(call.from_user.id)
     if user is None or user.role != UserRole.CUSTOMER:
-        await call.answer("Not allowed", show_alert=True)
+        await call.answer(t("shared.not_allowed", lang), show_alert=True)
         return
     async with SessionLocal() as session:
         res = await session.execute(
@@ -114,7 +143,7 @@ async def cb_customer_projects(call: CallbackQuery) -> None:
         )
         projects = list(res.scalars().all())
     if not projects:
-        await call.message.answer("No open projects.")
+        await call.message.answer(t("referee.empty.open_projects", lang))
         await call.answer()
         return
     kb = InlineKeyboardMarkup(
@@ -123,14 +152,15 @@ async def cb_customer_projects(call: CallbackQuery) -> None:
             for p in projects
         ]
     )
-    await call.message.answer("Your open projects:", reply_markup=kb)
+    await call.message.answer(t("referee.lists.open_projects", lang), reply_markup=kb)
     await call.answer()
 
 
 async def cb_project_picked(call: CallbackQuery) -> None:
+    lang = await _lang_for(call.from_user.id, call.from_user)
     user = await _get_user(call.from_user.id)
     if user is None or user.role != UserRole.CUSTOMER:
-        await call.answer("Not allowed", show_alert=True)
+        await call.answer(t("shared.not_allowed", lang), show_alert=True)
         return
     project_id = UUID(call.data.split(":", 1)[1])
     async with SessionLocal() as session:
@@ -142,7 +172,7 @@ async def cb_project_picked(call: CallbackQuery) -> None:
         )
         apps = list(res.scalars().all())
     if not apps:
-        await call.message.answer("No applicants yet.")
+        await call.message.answer(t("referee.empty.applicants", lang))
         await call.answer()
         return
 
@@ -150,25 +180,26 @@ async def cb_project_picked(call: CallbackQuery) -> None:
     for idx, a in enumerate(apps, start=1):
         rows.append([
             InlineKeyboardButton(
-                text=f"💬 Chat #{idx}",
+                text=t("referee.chat.row_chat", lang, idx=idx),
                 callback_data=f"chat:{project_id}:{a.specialist_id}",
             ),
             InlineKeyboardButton(
-                text=f"✅ Select #{idx}",
+                text=t("referee.chat.row_select", lang, idx=idx),
                 callback_data=f"select:{project_id}:{a.specialist_id}",
             ),
         ])
     await call.message.answer(
-        "Anonymous applicants for this project:",
+        t("referee.lists.applicants", lang),
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
 
 
 async def cb_open_chat(call: CallbackQuery, state: FSMContext) -> None:
+    lang = await _lang_for(call.from_user.id, call.from_user)
     user = await _get_user(call.from_user.id)
     if user is None or user.role != UserRole.CUSTOMER:
-        await call.answer("Not allowed", show_alert=True)
+        await call.answer(t("shared.not_allowed", lang), show_alert=True)
         return
     _, project_id_str, specialist_id_str = call.data.split(":")
     project_id = UUID(project_id_str)
@@ -183,17 +214,15 @@ async def cb_open_chat(call: CallbackQuery, state: FSMContext) -> None:
 
     await state.set_state(ChatState.in_thread)
     await state.update_data(thread_id=str(thread.id))
-    await call.message.answer(
-        "💬 You're now in an anonymous chat with this specialist.\n"
-        "Type messages here; they'll be forwarded. Use /leave to exit.",
-    )
+    await call.message.answer(t("referee.chat.entered_customer", lang))
     await call.answer()
 
 
 async def cb_select(call: CallbackQuery, state: FSMContext) -> None:
+    lang = await _lang_for(call.from_user.id, call.from_user)
     user = await _get_user(call.from_user.id)
     if user is None or user.role != UserRole.CUSTOMER:
-        await call.answer("Not allowed", show_alert=True)
+        await call.answer(t("shared.not_allowed", lang), show_alert=True)
         return
     _, project_id_str, specialist_id_str = call.data.split(":")
     async with SessionLocal() as session:
@@ -204,7 +233,9 @@ async def cb_select(call: CallbackQuery, state: FSMContext) -> None:
         except DomainError as e:
             await call.answer(e.message, show_alert=True)
             return
-    await call.message.answer(f"✅ Selected for <b>{project.title}</b>.", parse_mode="HTML")
+    await call.message.answer(
+        t("referee.chat.selected", lang, title=project.title), parse_mode="HTML"
+    )
     await state.clear()
     await call.answer()
 
@@ -212,9 +243,10 @@ async def cb_select(call: CallbackQuery, state: FSMContext) -> None:
 # ---------------- Specialist: list active chats ----------------
 
 async def cb_specialist_threads(call: CallbackQuery) -> None:
+    lang = await _lang_for(call.from_user.id, call.from_user)
     user = await _get_user(call.from_user.id)
     if user is None or user.role != UserRole.SPECIALIST:
-        await call.answer("Not allowed", show_alert=True)
+        await call.answer(t("shared.not_allowed", lang), show_alert=True)
         return
     async with SessionLocal() as session:
         res = await session.execute(
@@ -224,39 +256,42 @@ async def cb_specialist_threads(call: CallbackQuery) -> None:
         )
         threads = res.all()
     if not threads:
-        await call.message.answer("No active chats.")
+        await call.message.answer(t("referee.empty.active_chats", lang))
         await call.answer()
         return
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text=p.title, callback_data=f"open_thread:{t.id}")]
-            for t, p in threads
+            [InlineKeyboardButton(text=p.title, callback_data=f"open_thread:{t_.id}")]
+            for t_, p in threads
         ]
     )
-    await call.message.answer("Pick a chat to enter:", reply_markup=kb)
+    await call.message.answer(t("referee.lists.pick_chat", lang), reply_markup=kb)
     await call.answer()
 
 
 async def cb_open_thread(call: CallbackQuery, state: FSMContext) -> None:
+    lang = await _lang_for(call.from_user.id, call.from_user)
     user = await _get_user(call.from_user.id)
     if user is None:
-        await call.answer("Not allowed", show_alert=True)
+        await call.answer(t("shared.not_allowed", lang), show_alert=True)
         return
     thread_id_str = call.data.split(":", 1)[1]
     await state.set_state(ChatState.in_thread)
     await state.update_data(thread_id=thread_id_str)
-    await call.message.answer("💬 Entered chat. Type messages here; /leave to exit.")
+    await call.message.answer(t("referee.chat.entered_specialist", lang))
     await call.answer()
 
 
 async def on_leave(message: Message, state: FSMContext) -> None:
+    lang = await _lang_for(message.from_user.id, message.from_user)
     await state.clear()
-    await message.answer("Left the chat.")
+    await message.answer(t("referee.chat.left", lang))
 
 
 # ---------------- Relay incoming messages ----------------
 
 async def on_text_in_thread(message: Message, state: FSMContext, bot: Bot) -> None:
+    sender_lang = await _lang_for(message.from_user.id, message.from_user)
     data = await state.get_data()
     thread_id_str = data.get("thread_id")
     if not thread_id_str:
@@ -273,21 +308,29 @@ async def on_text_in_thread(message: Message, state: FSMContext, bot: Bot) -> No
                 session, thread_id, user, message.text or "", tg_message_id=message.message_id
             )
         except DomainError as e:
-            await message.answer(f"⚠️ {e.message}")
+            await message.answer(t("shared.error_prefix", sender_lang, message=e.message))
             return
 
-        # find counterparty chat_id
+        # find counterparty chat_id + language
         from app.models.telegram import TelegramAccount
 
         res = await session.execute(
             select(TelegramAccount.chat_id).where(TelegramAccount.user_id == counterparty_id)
         )
         chat_id = res.scalar_one_or_none()
+        recipient_lang = await language_for_user_id(session, counterparty_id)
 
     if chat_id:
-        label = "Customer" if party.value == "customer" else "Specialist"
+        label_key = (
+            "referee.chat.label_customer"
+            if party.value == "customer"
+            else "referee.chat.label_specialist"
+        )
+        label = t(label_key, recipient_lang)
         try:
-            await bot.send_message(chat_id, f"<b>{label}:</b> {message.text}", parse_mode="HTML")
+            await bot.send_message(
+                chat_id, f"<b>{label}:</b> {message.text}", parse_mode="HTML"
+            )
         except Exception:
             log.exception("Failed to forward message to %s", chat_id)
 
@@ -303,6 +346,7 @@ async def main() -> None:
     dp.message.register(on_start, CommandStart())
     dp.message.register(on_menu, Command("menu"))
     dp.message.register(on_leave, Command("leave"))
+    dp.message.register(handle_lang_command, Command("lang"))
     dp.callback_query.register(cb_customer_projects, F.data == "cust_projects")
     dp.callback_query.register(cb_specialist_threads, F.data == "spec_threads")
     dp.callback_query.register(cb_project_picked, F.data.startswith("proj:"))

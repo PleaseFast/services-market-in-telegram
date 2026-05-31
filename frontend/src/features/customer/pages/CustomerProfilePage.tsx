@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,17 +13,10 @@ import { DEFAULT_AVATAR_ID } from "@/lib/avatars";
 import { useAuthStore } from "@/stores/auth";
 import { useMyCustomerProfile, useSaveCustomerProfile } from "../api";
 
-const schema = z.object({
-  display_name: z
-    .string()
-    .min(2, "Display name must be at least 2 characters")
-    .max(120, "Display name is too long"),
-  avatar_id: z.string().min(1).max(40),
-});
-
-type FormValues = z.infer<typeof schema>;
+type FormValues = { display_name: string; avatar_id: string };
 
 export function CustomerProfilePage() {
+  const { t } = useTranslation();
   const { data: profile } = useMyCustomerProfile();
   const save = useSaveCustomerProfile();
   const navigate = useNavigate();
@@ -30,6 +24,18 @@ export function CustomerProfilePage() {
   const isOnboarding = params.get("onboarding") === "1";
   const setProfileComplete = useAuthStore((s) => s.setProfileComplete);
   const [ok, setOk] = useState(false);
+
+  const schema = useMemo(
+    () =>
+      z.object({
+        display_name: z
+          .string()
+          .min(2, t("customer.profile.displayNameMin", { count: 2 }))
+          .max(120, t("customer.profile.displayNameMax")),
+        avatar_id: z.string().min(1).max(40),
+      }),
+    [t],
+  );
 
   const {
     register,
@@ -67,18 +73,19 @@ export function CustomerProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">
-      <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Your profile</h1>
+      <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+        {t("customer.profile.title")}
+      </h1>
 
       {isOnboarding && (
         <div className="rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Add a display name so specialists know who they&apos;re working with. This is
-          how you&apos;ll appear on every project you post.
+          {t("customer.profile.onboardingHint")}
         </div>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">Avatar</CardTitle>
+          <CardTitle className="text-base font-medium">{t("customer.profile.avatar")}</CardTitle>
         </CardHeader>
         <CardContent>
           <Controller
@@ -93,15 +100,15 @@ export function CustomerProfilePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">Customer details</CardTitle>
+          <CardTitle className="text-base font-medium">{t("customer.profile.detailsHeader")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-1">
-              <Label htmlFor="display_name">Display name</Label>
+              <Label htmlFor="display_name">{t("customer.profile.displayName")}</Label>
               <Input
                 id="display_name"
-                placeholder="e.g. Acme Inc."
+                placeholder={t("customer.profile.displayNamePlaceholder")}
                 autoFocus={isOnboarding}
                 {...register("display_name")}
               />
@@ -109,13 +116,13 @@ export function CustomerProfilePage() {
                 <p className="text-xs text-destructive">{errors.display_name.message}</p>
               )}
             </div>
-            {ok && <p className="text-sm text-emerald-600">Profile saved.</p>}
+            {ok && <p className="text-sm text-emerald-600">{t("customer.profile.saved")}</p>}
             <Button type="submit" disabled={isSubmitting} className="h-11">
               {isSubmitting
-                ? "Saving…"
+                ? t("customer.profile.savingShort")
                 : isOnboarding
-                  ? "Save and continue"
-                  : "Save details"}
+                  ? t("customer.profile.saveAndContinue")
+                  : t("customer.profile.saveDetails")}
             </Button>
           </form>
         </CardContent>

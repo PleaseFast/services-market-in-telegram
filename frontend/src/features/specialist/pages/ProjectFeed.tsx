@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Card,
   CardContent,
@@ -15,6 +16,8 @@ import { usePublicFeed, type FeedFilters, type FeedSort } from "@/features/proje
 import { useMyProfile } from "@/features/specialist/api";
 import { formatDate } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
+import { projectStatusLabel } from "@/lib/projectStatus";
+import { categoryLabel } from "@/lib/categories";
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -39,24 +42,20 @@ function hasActiveFilters(f: FeedFilters): boolean {
 }
 
 export function ProjectFeed() {
+  const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
   const isGuest = useAuthStore((s) => s.isGuest);
   const user = useAuthStore((s) => s.user);
   const isSpecialist = !!user && user.role === "specialist";
   const { data: profile } = useMyProfile();
 
-  // URL params are the source of truth for filters.
   const filters = useMemo(() => readFilters(params), [params]);
 
-  // Local mirror of the search input so we can debounce URL updates.
   const [qInput, setQInput] = useState(filters.q ?? "");
-  // Local mirror of budget inputs (commit on blur).
   const [minInput, setMinInput] = useState(filters.budget_min?.toString() ?? "");
   const [maxInput, setMaxInput] = useState(filters.budget_max?.toString() ?? "");
-  // Mobile inline filter panel toggle.
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  // Re-sync local mirrors when the URL changes from elsewhere (back button, Clear).
   useEffect(() => {
     setQInput(filters.q ?? "");
     setMinInput(filters.budget_min?.toString() ?? "");
@@ -64,15 +63,14 @@ export function ProjectFeed() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
 
-  // Debounce q → URL.
   useEffect(() => {
-    const t = setTimeout(() => {
+    const tid = setTimeout(() => {
       const next = new URLSearchParams(params);
       if (qInput.trim()) next.set("q", qInput.trim());
       else next.delete("q");
       if (next.toString() !== params.toString()) setParams(next, { replace: true });
     }, SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(t);
+    return () => clearTimeout(tid);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qInput]);
 
@@ -106,12 +104,12 @@ export function ProjectFeed() {
   const { data, isLoading } = usePublicFeed(filters);
   const profileCategories = profile?.categories ?? [];
   const showScope = isSpecialist && !isGuest && profileCategories.length > 0;
-  const scopeLabel = profileCategories.join(", ");
+  const scopeLabel = profileCategories.map(categoryLabel).join(", ");
   const active = hasActiveFilters(filters);
 
   const searchInput = (
     <Input
-      placeholder="Search projects…"
+      placeholder={t("specialist.feed.searchPlaceholder")}
       value={qInput}
       onChange={(e) => setQInput(e.target.value)}
       className="rounded-xl"
@@ -121,24 +119,24 @@ export function ProjectFeed() {
   const budgetInputs = (
     <>
       <Input
-        placeholder="Min $"
+        placeholder={t("specialist.feed.minBudget")}
         type="number"
         min={0}
         value={minInput}
         onChange={(e) => setMinInput(e.target.value)}
         onBlur={() => commitBudget("budget_min", minInput)}
         className="rounded-xl md:w-28"
-        aria-label="Minimum budget"
+        aria-label={t("specialist.feed.minBudgetAria")}
       />
       <Input
-        placeholder="Max $"
+        placeholder={t("specialist.feed.maxBudget")}
         type="number"
         min={0}
         value={maxInput}
         onChange={(e) => setMaxInput(e.target.value)}
         onBlur={() => commitBudget("budget_max", maxInput)}
         className="rounded-xl md:w-28"
-        aria-label="Maximum budget"
+        aria-label={t("specialist.feed.maxBudgetAria")}
       />
     </>
   );
@@ -148,10 +146,12 @@ export function ProjectFeed() {
       value={filters.sort ?? "newest"}
       onChange={(e) => setSort(e.target.value as FeedSort)}
       className="rounded-xl md:w-40"
-      aria-label="Sort"
+      aria-label={t("specialist.feed.sortAria")}
     >
-      <option value="newest">Newest first</option>
-      {isSpecialist && !isGuest && <option value="viewed">Viewed first</option>}
+      <option value="newest">{t("specialist.feed.sortNewest")}</option>
+      {isSpecialist && !isGuest && (
+        <option value="viewed">{t("specialist.feed.sortViewed")}</option>
+      )}
     </Select>
   );
 
@@ -159,16 +159,15 @@ export function ProjectFeed() {
     <div className="space-y-6">
       <div className="space-y-1">
         <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-          {isGuest ? "Browse open projects" : "Open projects"}
+          {isGuest ? t("specialist.feed.titleGuest") : t("specialist.feed.titleOpen")}
         </h1>
         {showScope && (
           <p className="text-sm text-muted-foreground">
-            Showing projects in: {scopeLabel} · update your profile to change categories
+            {t("specialist.feed.scope", { categories: scopeLabel })}
           </p>
         )}
       </div>
 
-      {/* Toolbar: full row on desktop, search + Filters toggle on mobile. */}
       <div className="space-y-3">
         <div className="flex gap-2 md:hidden">
           <div className="flex-1">{searchInput}</div>
@@ -178,7 +177,7 @@ export function ProjectFeed() {
             onClick={() => setFiltersOpen((v) => !v)}
             aria-expanded={filtersOpen}
           >
-            Filters
+            {t("specialist.feed.filters")}
           </Button>
         </div>
         <div className="hidden md:flex md:items-center md:gap-2">
@@ -187,30 +186,29 @@ export function ProjectFeed() {
           {sortSelect}
           {active && (
             <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
-              Clear
+              {t("specialist.feed.clear")}
             </Button>
           )}
         </div>
-        {/* Mobile inline filter panel */}
         <div className={filtersOpen ? "flex flex-col gap-2 md:hidden" : "hidden"}>
           <div className="flex gap-2">{budgetInputs}</div>
           {sortSelect}
           {active && (
             <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
-              Clear all filters
+              {t("specialist.feed.clearAll")}
             </Button>
           )}
         </div>
       </div>
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
+      {isLoading && <p className="text-muted-foreground text-sm">{t("common.states.loading")}</p>}
       {!isLoading && data?.items.length === 0 && (
         <p className="text-muted-foreground text-sm">
           {active
-            ? "No open projects match your filters."
+            ? t("specialist.feed.emptyFiltered")
             : showScope
-              ? `No open projects in ${scopeLabel} right now.`
-              : "No open projects right now."}
+              ? t("specialist.feed.emptyScoped", { categories: scopeLabel })
+              : t("specialist.feed.emptyAll")}
         </p>
       )}
       <div className="grid md:grid-cols-2 gap-4">
@@ -220,14 +218,18 @@ export function ProjectFeed() {
               <CardHeader>
                 <CardTitle className="text-base font-medium">{p.title}</CardTitle>
                 <CardDescription>
-                  Budget: {p.budget} {p.currency} · Deadline: {formatDate(p.deadline)}
+                  {t("projects.labels.budgetDeadline", {
+                    budget: p.budget,
+                    currency: p.currency,
+                    deadline: formatDate(p.deadline),
+                  })}
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground line-clamp-3">
                 {p.description}
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <Badge tone="outline">{p.category}</Badge>
-                  <Badge tone="outline">{p.status}</Badge>
+                  <Badge tone="outline">{categoryLabel(p.category)}</Badge>
+                  <Badge tone="outline">{projectStatusLabel(p.status)}</Badge>
                 </div>
               </CardContent>
             </Card>

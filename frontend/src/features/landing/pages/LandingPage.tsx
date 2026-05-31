@@ -1,39 +1,26 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowRight, BadgeCheck, MessageSquareText, Sparkles, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/stores/auth";
 import { useTemplates, usePublicFeed } from "@/features/projects/api";
 import { groupByCategory } from "@/lib/templates";
+import { categoryLabel } from "@/lib/categories";
 import { cn } from "@/lib/utils";
 
-const FEATURES = [
-  {
-    icon: MessageSquareText,
-    title: "Specialists scope the job",
-    body: "Tell us about your project. Pros read it and respond with proposals.",
-  },
-  {
-    icon: Wallet,
-    title: "Best price",
-    body: "Compare quotes from multiple specialists and pick the one that fits.",
-  },
-  {
-    icon: BadgeCheck,
-    title: "Verified pros",
-    body: "We check identity, experience, and the work history of every specialist.",
-  },
-  {
-    icon: Sparkles,
-    title: "Real reviews",
-    body: "Reviews can only be left after the job is finished — no astroturf.",
-  },
-];
+const FEATURE_KEYS = [
+  { icon: MessageSquareText, key: "scope" },
+  { icon: Wallet, key: "price" },
+  { icon: BadgeCheck, key: "verified" },
+  { icon: Sparkles, key: "reviews" },
+] as const;
 
 const LANDING_VISIBLE_PER_CATEGORY = 6;
 
 export function LandingPage() {
+  const { t } = useTranslation();
   const nav = useNavigate();
   const { user } = useAuthStore();
   const { data: templates } = useTemplates();
@@ -44,11 +31,6 @@ export function LandingPage() {
   const grouped = useMemo(() => groupByCategory(templates ?? []), [templates]);
   const openProjectCount = feed?.total ?? 0;
 
-  // The landing search is a quick "start a project request" entry point:
-  // route into the (anonymous-allowed) create-project page with the query as
-  // the prefilled title. From there, the existing delayed-auth flow handles
-  // publishing — unauthenticated visitors only hit the auth wall when they
-  // click Publish, and authenticated customers land on the form pre-populated.
   function submitSearch() {
     const trimmed = q.trim();
     nav(trimmed ? `/c/new?title=${encodeURIComponent(trimmed)}` : "/c/new");
@@ -59,12 +41,12 @@ export function LandingPage() {
       {/* HERO */}
       <section className="pt-12 md:pt-16 max-w-3xl">
         <h1 className="text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05]">
-          Quick search for IT specialists
+          {t("landing.title")}
         </h1>
         <p className="mt-4 text-muted-foreground text-base md:text-lg">
           {openProjectCount > 0
-            ? `${openProjectCount.toLocaleString()} open projects — find the right specialist or post your own.`
-            : "Find the right specialist or post your own project."}
+            ? t("landing.openProjectsWithCount", { count: openProjectCount })
+            : t("landing.noOpenProjects")}
         </p>
 
         <div className="mt-8 flex flex-col sm:flex-row gap-2 max-w-2xl">
@@ -74,11 +56,11 @@ export function LandingPage() {
             onKeyDown={(e) => {
               if (e.key === "Enter") submitSearch();
             }}
-            placeholder="Service or specialist…"
+            placeholder={t("landing.search.placeholder")}
             className="h-12 text-base rounded-xl bg-muted/60 border-transparent focus-visible:bg-background"
           />
           <Button onClick={submitSearch} className="h-12 px-6 rounded-xl">
-            Find
+            {t("landing.search.submit")}
             <ArrowRight className="ml-1 h-4 w-4" />
           </Button>
         </div>
@@ -86,14 +68,14 @@ export function LandingPage() {
         <div className="mt-6 flex flex-wrap gap-3 items-center text-sm">
           {user ? (
             <Button asChild variant="outline">
-              <Link to={user.role === "customer" ? "/c" : "/s"}>Open dashboard</Link>
+              <Link to={user.role === "customer" ? "/c" : "/s"}>{t("landing.openDashboard")}</Link>
             </Button>
           ) : (
             <Link
               to="/register?role=specialist"
               className="text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
             >
-              I&apos;m a specialist
+              {t("landing.iAmSpecialist")}
             </Link>
           )}
         </div>
@@ -101,13 +83,15 @@ export function LandingPage() {
 
       {/* FEATURES */}
       <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-10">
-        {FEATURES.map((f) => (
-          <div key={f.title} className="space-y-3">
+        {FEATURE_KEYS.map(({ icon: Icon, key }) => (
+          <div key={key} className="space-y-3">
             <div className="h-10 w-10 flex items-center justify-center rounded-full bg-muted">
-              <f.icon className="h-5 w-5" />
+              <Icon className="h-5 w-5" />
             </div>
-            <h3 className="font-medium">{f.title}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">{f.body}</p>
+            <h3 className="font-medium">{t(`landing.features.${key}Title`)}</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {t(`landing.features.${key}Body`)}
+            </p>
           </div>
         ))}
       </section>
@@ -115,8 +99,8 @@ export function LandingPage() {
       {/* STATS */}
       <section className="text-sm text-muted-foreground">
         {openProjectCount > 0
-          ? `${openProjectCount.toLocaleString()} projects open right now, with new ones posted daily.`
-          : "Be the first — post a project today."}
+          ? t("landing.stats.withCount", { count: openProjectCount })
+          : t("landing.stats.empty")}
       </section>
 
       {/* CATEGORY GRID */}
@@ -129,20 +113,20 @@ export function LandingPage() {
             return (
               <div key={category} className="space-y-3">
                 <div className="flex items-baseline gap-2">
-                  <h3 className="font-semibold">{category}</h3>
+                  <h3 className="font-semibold">{categoryLabel(category)}</h3>
                   <span className="text-xs text-muted-foreground">{items.length}</span>
                 </div>
                 <ul className="space-y-1.5">
-                  {visible.map((t) => (
-                    <li key={t.id}>
+                  {visible.map((tpl) => (
+                    <li key={tpl.id}>
                       <Link
-                        to={`/c/new?template_id=${t.id}`}
+                        to={`/c/new?template_id=${tpl.id}`}
                         className={cn(
                           "text-sm text-muted-foreground hover:text-foreground",
                           "hover:underline underline-offset-4",
                         )}
                       >
-                        {t.title}
+                        {tpl.title}
                       </Link>
                     </li>
                   ))}
@@ -153,7 +137,9 @@ export function LandingPage() {
                     onClick={() => setExpanded((s) => ({ ...s, [category]: !isExpanded }))}
                     className="text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
                   >
-                    {isExpanded ? "Show less" : `Show ${hidden} more`}
+                    {isExpanded
+                      ? t("landing.category.showLess")
+                      : t("landing.category.showMore", { count: hidden })}
                   </button>
                 )}
               </div>

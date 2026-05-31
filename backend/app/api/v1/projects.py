@@ -2,10 +2,11 @@ from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi import APIRouter, Header, Query, Response
 
 from app.core.categories import clamp_category
 from app.core.deps import CurrentUser, CurrentUserOptional, SessionDep
+from app.core.i18n import parse_accept_language
 from app.models.project import ProjectStatus
 from app.models.user import UserRole
 from app.repositories.projects import (
@@ -13,7 +14,7 @@ from app.repositories.projects import (
     list_open_projects,
     list_projects_for_customer,
     list_projects_for_specialist,
-    list_templates,
+    list_templates_localized,
 )
 from app.repositories.specialists import get_profile_by_user
 from app.schemas.common import Page
@@ -25,14 +26,31 @@ from app.schemas.project import (
     ProjectTemplateOut,
 )
 from app.services import projects as project_svc
+from app.services.errors import NotFoundError
 from app.services.project_views import record_view
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
 
 @router.get("/templates", response_model=list[ProjectTemplateOut])
-async def templates(session: SessionDep) -> list[ProjectTemplateOut]:
-    return [ProjectTemplateOut.model_validate(t) for t in await list_templates(session)]
+async def templates(
+    session: SessionDep,
+    viewer: CurrentUserOptional,
+    accept_language: str | None = Header(default=None, alias="Accept-Language"),
+) -> list[ProjectTemplateOut]:
+    lang = (viewer.language if viewer is not None else None) or parse_accept_language(
+        accept_language
+    )
+    rows = await list_templates_localized(session, lang)
+    return [
+        ProjectTemplateOut(
+            id=t.id,
+            title=title,
+            category=t.category,
+            description_template=description,
+        )
+        for (t, title, description) in rows
+    ]
 
 
 @router.get("", response_model=Page[ProjectOut])
@@ -137,11 +155,11 @@ async def detail(
 ) -> ProjectDetailOut:
     p = await get_project(session, project_id)
     if p is None or p.deleted_at is not None:
-        raise HTTPException(404, "Project not found")
+        raise NotFoundError("projects.not_found", message="Project not found")
 
     viewer_is_owner = viewer is not None and viewer.id == p.customer_id
     if p.status == ProjectStatus.PAUSED and not viewer_is_owner:
-        raise HTTPException(404, "Project not found")
+        raise NotFoundError("projects.not_found", message="Project not found")
 
     higher_rated: int | None = None
     if (

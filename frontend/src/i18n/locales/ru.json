@@ -1,0 +1,569 @@
+{
+  "common": {
+    "appName": "Doings",
+    "appTitle": "Doings — Маркетплейс IT-фриланса",
+    "appTagline": "Telegram-нативный маркетплейс IT-фриланса.",
+    "actions": {
+      "save": "Сохранить",
+      "cancel": "Отмена",
+      "delete": "Удалить",
+      "edit": "Редактировать",
+      "back": "Назад",
+      "next": "Далее",
+      "create": "Создать",
+      "submit": "Отправить",
+      "loading": "Загрузка…",
+      "saving": "Сохранение…",
+      "publishing": "Публикация…",
+      "search": "Поиск"
+    },
+    "states": {
+      "loading": "Загрузка…",
+      "saving": "Сохранение…",
+      "error": "Что-то пошло не так",
+      "empty": "Пусто"
+    },
+    "language": {
+      "label": "Язык",
+      "ru": "Русский",
+      "en": "English",
+      "toggle": "Переключить язык"
+    },
+    "guest": {
+      "badge": "Гость",
+      "banner": "Просмотр в гостевом режиме — отклики, чаты и публикация проектов требуют аккаунта.",
+      "exitTitle": "Выйти из гостевого режима",
+      "createAccount": "Создать аккаунт",
+      "signIn": "Войти"
+    },
+    "nav": {
+      "browseProjects": "Смотреть проекты",
+      "dashboard": "Главная",
+      "projects": "Проекты",
+      "profile": "Профиль",
+      "archive": "Архив",
+      "myProjects": "Мои проекты",
+      "newProject": "Новый проект",
+      "specialists": "Специалисты",
+      "notifications": "Уведомления",
+      "signOut": "Выйти",
+      "signIn": "Войти",
+      "signUp": "Регистрация",
+      "forCustomers": "Для заказчиков",
+      "forSpecialists": "Для специалистов",
+      "themeToggle": "Сменить тему"
+    }
+  },
+  "validation": {
+    "required": "Обязательное поле",
+    "email": "Введите корректный email",
+    "passwordMin": "Минимум {{count}} символов",
+    "min": "Минимум {{count}} символов",
+    "max": "Максимум {{count}} символов",
+    "title.min": "Минимум {{count}} символов",
+    "description.min": "Минимум {{count}} символов",
+    "endYearRequired": "Укажите год окончания",
+    "endYearAfterStart": "Год окончания должен быть позже года начала",
+    "failed": "Проверьте поля формы"
+  },
+  "auth": {
+    "login": {
+      "title": "Вход",
+      "emailLabel": "Email",
+      "passwordLabel": "Пароль",
+      "submit": "Войти",
+      "submitting": "Вход…",
+      "noAccount": "Нет аккаунта?",
+      "createOne": "Создать",
+      "notReady": "Пока не готовы войти?",
+      "browseAsGuest": "Смотреть проекты как гость"
+    },
+    "register": {
+      "title": "Создание аккаунта",
+      "intentCustomer": "Вы публикуете проект — мы создадим аккаунт заказчика, чтобы вы могли им управлять.",
+      "intentSpecialist": "Создайте аккаунт специалиста, чтобы откликаться на проекты.",
+      "roleLabel": "Я —",
+      "roleCustomer": "Заказчик",
+      "roleSpecialist": "Специалист",
+      "emailLabel": "Email",
+      "passwordLabel": "Пароль",
+      "submit": "Создать аккаунт",
+      "submitting": "Создание…",
+      "haveAccount": "Уже есть аккаунт?",
+      "signIn": "Войти",
+      "notReady": "Пока не готовы зарегистрироваться?",
+      "browseAsGuest": "Смотреть проекты как гость"
+    }
+  },
+  "landing": {
+    "title": "Быстрый подбор IT-специалистов",
+    "openProjectsWithCount": "Сейчас открыто проектов: {{count}} — найдите специалиста или опубликуйте свой проект.",
+    "noOpenProjects": "Найдите подходящего специалиста или опубликуйте свой проект.",
+    "search": {
+      "placeholder": "Услуга или специалист…",
+      "submit": "Найти"
+    },
+    "openDashboard": "Открыть кабинет",
+    "iAmSpecialist": "Я специалист",
+    "stats": {
+      "withCount": "Открыто прямо сейчас {{count}} проектов; каждый день появляются новые.",
+      "empty": "Будьте первым — опубликуйте проект сегодня."
+    },
+    "features": {
+      "scopeTitle": "Специалисты оценят задачу",
+      "scopeBody": "Опишите проект — специалисты прочитают и пришлют предложения.",
+      "priceTitle": "Лучшая цена",
+      "priceBody": "Сравнивайте предложения от нескольких специалистов и выбирайте подходящее.",
+      "verifiedTitle": "Проверенные исполнители",
+      "verifiedBody": "Мы проверяем личность, опыт и историю работы каждого специалиста.",
+      "reviewsTitle": "Настоящие отзывы",
+      "reviewsBody": "Отзыв можно оставить только после завершения работы — без накруток."
+    },
+    "category": {
+      "showMore": "Показать ещё {{count}}",
+      "showLess": "Свернуть"
+    }
+  },
+  "notFound": {
+    "title": "404",
+    "subtitle": "Эта страница куда-то делась.",
+    "back": "На главную"
+  },
+  "shell": {
+    "footer": "Doings — Telegram-нативный маркетплейс IT-фриланса."
+  },
+  "projects": {
+    "status": {
+      "draft": "Черновик",
+      "open": "Открыт",
+      "paused": "На паузе",
+      "in_progress": "В работе",
+      "completed": "Завершён",
+      "archived": "В архиве",
+      "canceled": "Отменён"
+    },
+    "actions": {
+      "publish": "Опубликовать",
+      "pause": "Приостановить поиск",
+      "resume": "Возобновить поиск",
+      "edit": "Редактировать",
+      "complete": "Отметить завершённым",
+      "archive": "В архив",
+      "delete": "Удалить",
+      "select": "Выбрать",
+      "apply": "Откликнуться",
+      "applying": "Отправляем…",
+      "withdraw": "Отозвать"
+    },
+    "fields": {
+      "title": "Название",
+      "description": "Описание",
+      "budget": "Бюджет",
+      "currency": "Валюта",
+      "deadline": "Дедлайн",
+      "category": "Категория",
+      "coverLetter": "Сопроводительное письмо"
+    },
+    "confirmDelete": "Удалить проект? Это действие необратимо.",
+    "labels": {
+      "budgetDeadline": "Бюджет: {{budget}} {{currency}} · Дедлайн: {{deadline}}",
+      "applicants": "Отклики ({{count}})",
+      "applicantsHint": "Нажмите на специалиста, чтобы открыть профиль, или выберите для старта проекта.",
+      "noApplicants": "Откликов пока нет.",
+      "yourReview": "Ваш отзыв",
+      "subjectSpecialist": "специалиста",
+      "subjectCustomer": "заказчика",
+      "anonymous": "Аноним",
+      "noRating": "ещё нет рейтинга",
+      "ratingFormat": "{{value}} ★ ({{count}})"
+    }
+  },
+  "customer": {
+    "dashboard": {
+      "welcome": "С возвращением",
+      "newProject": "+ Новый проект",
+      "summary": {
+        "drafts": "Черновики",
+        "open": "Открытые",
+        "inProgress": "В работе"
+      },
+      "viewAll": "Все",
+      "recent": "Недавние",
+      "empty": "Пока нет проектов — создайте первый."
+    },
+    "projects": {
+      "title": "Мои проекты",
+      "empty": "Пока нет проектов.",
+      "createOne": "Создать"
+    },
+    "profile": {
+      "title": "Ваш профиль",
+      "avatar": "Аватар",
+      "detailsHeader": "Данные заказчика",
+      "displayName": "Отображаемое имя",
+      "displayNamePlaceholder": "напр. ООО «Ромашка»",
+      "displayNameMin": "Имя должно содержать минимум {{count}} символа",
+      "displayNameMax": "Слишком длинное имя",
+      "saved": "Профиль сохранён.",
+      "savingShort": "Сохраняем…",
+      "saveAndContinue": "Сохранить и продолжить",
+      "saveDetails": "Сохранить данные",
+      "onboardingHint": "Добавьте отображаемое имя, чтобы специалисты знали, с кем работают. Это имя будет видно во всех ваших проектах."
+    },
+    "create": {
+      "anonHint": "Описать проект можно и без аккаунта. Войти попросим только при нажатии {{publishWord}}.",
+      "publishWord": "Опубликовать",
+      "alreadyHaveAccount": "Уже есть аккаунт?",
+      "signIn": "Войти",
+      "describe": "Опишите ваш проект",
+      "title": "Название",
+      "category": "Категория",
+      "categoryHint": "Подобрана по названию и описанию. Если нужно — выберите другую.",
+      "details": "Подробности",
+      "suggestionInsert": "Вставить предложенный бриф",
+      "suggestionOrTab": "или нажмите",
+      "budget": "Бюджет",
+      "currency": "Валюта",
+      "deadline": "Дедлайн",
+      "saveDraft": "Сохранить как черновик",
+      "publish": "Опубликовать",
+      "publishSignIn": "Опубликовать — войти и опубликовать",
+      "publishing": "Публикуем ваш проект…",
+      "templatesTitle": "Выберите шаблон (опционально)",
+      "templatesHint": "Нужна стартовая точка? Шаблон заменит название и очистит описание, чтобы начать с популярного запроса.",
+      "showLess": "Свернуть",
+      "showMore": "ещё {{count}}",
+      "wrongRole": "Вы вошли как специалист, но публиковать проекты могут только заказчики. Выйдите и создайте аккаунт заказчика, чтобы опубликовать этот черновик."
+    },
+    "edit": {
+      "title": "Редактирование проекта",
+      "titleField": "Название",
+      "category": "Категория",
+      "details": "Подробности",
+      "budget": "Бюджет",
+      "currency": "Валюта",
+      "deadline": "Дедлайн",
+      "save": "Сохранить изменения",
+      "cancel": "Отмена",
+      "notEditable": "Этот проект больше нельзя редактировать (статус: {{status}})."
+    }
+  },
+  "specialist": {
+    "dashboard": {
+      "title": "Кабинет",
+      "finishProfile": "Завершите профиль",
+      "finishProfileHint": "Чтобы откликаться на проекты, нужно завершить профиль.",
+      "createProfile": "Создать профиль",
+      "browseProjects": "Смотреть проекты",
+      "browseProjectsHint": "Найдите новые возможности по вашим компетенциям.",
+      "openFeed": "Открыть ленту",
+      "active": "Активные проекты",
+      "engagedCount_one": "{{count}} активный",
+      "engagedCount_few": "{{count}} активных",
+      "engagedCount_many": "{{count}} активных",
+      "engagedCount_other": "{{count}} активных",
+      "empty": "Пока нет активных проектов.",
+      "yourRating": "Ваш рейтинг",
+      "yourRatingHint": "Складывается из отзывов заказчиков."
+    },
+    "feed": {
+      "titleOpen": "Открытые проекты",
+      "titleGuest": "Открытые проекты для просмотра",
+      "scope": "Показаны проекты: {{categories}} · поменять можно в профиле",
+      "searchPlaceholder": "Поиск по проектам…",
+      "minBudget": "Бюджет от",
+      "maxBudget": "Бюджет до",
+      "minBudgetAria": "Минимальный бюджет",
+      "maxBudgetAria": "Максимальный бюджет",
+      "sortAria": "Сортировка",
+      "sortNewest": "Сначала новые",
+      "sortViewed": "Сначала просмотренные",
+      "filters": "Фильтры",
+      "clear": "Сбросить",
+      "clearAll": "Сбросить все фильтры",
+      "emptyFiltered": "По заданным фильтрам открытых проектов нет.",
+      "emptyScoped": "В категориях {{categories}} открытых проектов сейчас нет.",
+      "emptyAll": "Сейчас открытых проектов нет."
+    },
+    "detail": {
+      "applyTitle": "Откликнуться",
+      "applyHint": "Добавьте короткое сопроводительное письмо (опционально).",
+      "coverLetter": "Сопроводительное письмо",
+      "coverLetterPlaceholder": "Привет! Вот почему я подойду…",
+      "submit": "Отправить отклик",
+      "submitting": "Отправляем…",
+      "alreadyApplied": "Вы уже откликнулись.",
+      "applicationSent": "✅ Отклик отправлен. Заказчик получит уведомление.",
+      "higherRated_one": "{{count}} специалист с рейтингом выше вашего",
+      "higherRated_few": "{{count}} специалиста с рейтингом выше вашего",
+      "higherRated_many": "{{count}} специалистов с рейтингом выше вашего",
+      "higherRated_other": "{{count}} специалистов с рейтингом выше вашего",
+      "openChat": "Открыть чат",
+      "withdrawApplication": "Отозвать отклик",
+      "publishedPrefix": "Опубликован: {{date}}",
+      "notFound": "Проект не найден."
+    },
+    "archive": {
+      "title": "Архив",
+      "empty": "Здесь пока пусто."
+    },
+    "public": {
+      "loading": "Загрузка…",
+      "notFound": "Специалист не найден.",
+      "yearsExperience": "Опыт от {{years}} лет",
+      "reviewsCount_one": "{{value}} · {{count}} отзыв",
+      "reviewsCount_few": "{{value}} · {{count}} отзыва",
+      "reviewsCount_many": "{{value}} · {{count}} отзывов",
+      "reviewsCount_other": "{{value}} · {{count}} отзывов",
+      "servicesTitle": "Услуги и условия работы",
+      "experienceTitle": "Образование и опыт",
+      "work": "Опыт работы",
+      "education": "Образование",
+      "achievements": "Достижения",
+      "emptyWork": "Опыт работы не указан.",
+      "emptyEducation": "Образование не указано.",
+      "emptyAchievements": "Достижения не указаны.",
+      "yearsRangePresent": "{{start}} – н.в."
+    },
+    "profile": {
+      "title": "Ваш профиль",
+      "avatar": "Аватар",
+      "details": "Данные специалиста",
+      "fullName": "Имя и фамилия",
+      "age": "Возраст",
+      "yearsExperience": "Стаж (лет)",
+      "specializations": "Специализации",
+      "specializationsHint": "Выберите одну или несколько — вы будете видеть проекты во всех выбранных категориях.",
+      "pickAtLeastOne": "Выберите минимум одну категорию",
+      "bioRequired": "Поле «О себе» обязательно",
+      "bio": "О себе",
+      "saved": "Профиль сохранён.",
+      "savingShort": "Сохраняем…",
+      "saveAndContinue": "Сохранить и продолжить",
+      "saveDetails": "Сохранить данные",
+      "onboardingHint": "Заполните данные специалиста, чтобы начать получать проекты. После сохранения откроется лента проектов.",
+      "servicesHeader": "Услуги и условия работы",
+      "servicesEdit": "Изменить",
+      "servicesDone": "Готово",
+      "experienceHeader": "Образование и опыт",
+      "timelineWork": "Опыт работы",
+      "timelineEducation": "Образование",
+      "timelineAchievements": "Достижения",
+      "addWork": "Добавить опыт работы",
+      "addEducation": "Добавить образование",
+      "addAchievement": "Добавить достижение",
+      "currentWork": "Работаю сейчас",
+      "currentStudy": "Учусь сейчас",
+      "currentPresent": "Настоящее время"
+    },
+    "timeline": {
+      "title": "Название",
+      "description": "Описание",
+      "startYear": "Год начала",
+      "endYear": "Год окончания",
+      "saving": "Сохраняем…",
+      "saveChanges": "Сохранить",
+      "add": "Добавить",
+      "cancel": "Отмена",
+      "moveUp": "Выше",
+      "moveDown": "Ниже",
+      "edit": "Редактировать",
+      "delete": "Удалить",
+      "confirmDelete": "Удалить запись?",
+      "empty": "Записей пока нет.",
+      "yearsRangePresent": "{{start}} – н.в.",
+      "validation": {
+        "min": "Минимум {{count}} символа",
+        "endRequired": "Укажите год окончания",
+        "endBeforeStart": "Год окончания должен быть позже года начала"
+      }
+    },
+    "services": {
+      "empty": "Услуги пока не указаны.",
+      "otherCategories": "Другие категории",
+      "save": "Сохранить услуги",
+      "saving": "Сохраняем…",
+      "priceFor": "Цена за {{label}}",
+      "currencyHint": "$"
+    },
+    "reviews": {
+      "title": "Отзывы",
+      "loading": "Загрузка…",
+      "empty": "Отзывов пока нет.",
+      "byAuthor": "от {{author}}",
+      "count_one": "{{value}} · {{count}} отзыв",
+      "count_few": "{{value}} · {{count}} отзыва",
+      "count_many": "{{value}} · {{count}} отзывов",
+      "count_other": "{{value}} · {{count}} отзывов"
+    },
+    "catalog": {
+      "title": "Специалисты",
+      "filters": {
+        "categoryAria": "Фильтр по категории",
+        "anyCategory": "Любая категория",
+        "ratingAria": "Фильтр по минимальному рейтингу",
+        "anyRating": "Любой рейтинг",
+        "gte": "≥ {{value}}★",
+        "fiveStars": "5★"
+      },
+      "empty": "По заданным фильтрам никого не нашлось.",
+      "yearsShort": "{{count}} г.",
+      "yearsShort_other": "{{count}} лет"
+    }
+  },
+  "notifications": {
+    "title": "Уведомления",
+    "newBadge": "новое",
+    "markRead": "Отметить прочитанным",
+    "empty": "Уведомлений пока нет.",
+    "types": {
+      "new_application": "Новый отклик",
+      "application_accepted": "Отклик принят",
+      "application_rejected": "Отклик отклонён",
+      "specialist_selected": "Специалист выбран",
+      "project_completed": "Проект завершён",
+      "direct_offer_received": "Получено персональное предложение",
+      "direct_offer_answered": "На предложение ответили",
+      "new_review": "Новый отзыв"
+    }
+  },
+  "guestPrompt": {
+    "title": "Войдите, чтобы продолжить",
+    "subtitle": "Чтобы {{action}}, нужен аккаунт. Гости могут только просматривать открытые проекты.",
+    "defaultAction": "выполнить это действие",
+    "actions": {
+      "apply": "откликнуться на проект",
+      "openChat": "открыть чат",
+      "publish": "опубликовать проект",
+      "leaveReview": "оставить отзыв"
+    },
+    "signUp": "Создать аккаунт",
+    "signIn": "Войти"
+  },
+  "customerInfo": {
+    "title": "О заказчике",
+    "reviews": "Отзывы",
+    "reviewsLoading": "Загрузка…",
+    "noReviews": "Отзывов пока нет.",
+    "byAuthor": "от {{author}}",
+    "reviewsCount_one": "{{value}} · {{count}} отзыв",
+    "reviewsCount_few": "{{value}} · {{count}} отзыва",
+    "reviewsCount_many": "{{value}} · {{count}} отзывов",
+    "reviewsCount_other": "{{value}} · {{count}} отзывов",
+    "otherOpen": "Другие открытые проекты этого заказчика",
+    "noOtherOpen": "Других открытых проектов пока нет.",
+    "deadlinePrefix": "Дедлайн: {{date}}"
+  },
+  "review": {
+    "title": "Оставить отзыв",
+    "subtitle": "Поставьте {{subject}} оценку (0–5 ★ с шагом 0.5) и оставьте опциональный комментарий.",
+    "placeholder": "Что вам запомнилось?",
+    "submit": "Отправить отзыв",
+    "submitting": "Отправляем…",
+    "yourReview": "Ваш отзыв",
+    "thanks": "Спасибо за отзыв!"
+  },
+  "categories": {
+    "Frontend": "Фронтенд",
+    "Backend": "Бэкенд",
+    "Bots": "Боты",
+    "Mobile": "Мобильная разработка",
+    "DevOps": "DevOps",
+    "Data": "Данные",
+    "Design": "Дизайн",
+    "AI": "ИИ",
+    "Other": "Другое"
+  },
+  "errors": {
+    "common": {
+      "not_found": "Не найдено",
+      "conflict": "Конфликт",
+      "forbidden": "Доступ запрещён"
+    },
+    "auth": {
+      "email_taken": "Email уже зарегистрирован",
+      "invalid_credentials": "Неверный email или пароль",
+      "unknown_bot": "Неизвестный бот '{{bot}}'",
+      "telegram_missing_user": "В initData отсутствует поле user",
+      "role_required": "Для первого входа нужно выбрать роль",
+      "refresh_invalid": "Недействительный refresh-токен",
+      "token_wrong_type": "Неверный тип токена",
+      "refresh_revoked": "Refresh-токен отозван",
+      "refresh_expired": "Refresh-токен истёк",
+      "user_not_found": "Пользователь не найден"
+    },
+    "users": {
+      "language_unsupported": "Язык '{{language}}' не поддерживается"
+    },
+    "projects": {
+      "not_found": "Проект не найден",
+      "not_yours": "Это не ваш проект",
+      "not_visible": "Проект недоступен",
+      "customer_only": "Действие доступно только заказчикам",
+      "bad_state_edit": "Редактировать можно только черновики, открытые и приостановленные проекты",
+      "bad_state_publish": "Опубликовать можно только черновик",
+      "bad_state_archive": "Архивировать можно только завершённые или отменённые проекты",
+      "bad_state_cancel": "Отменить можно только черновики, открытые и приостановленные проекты",
+      "bad_state_pause": "Приостановить можно только открытые проекты",
+      "bad_state_resume": "Возобновить можно только приостановленные проекты",
+      "bad_state_delete": "Активный проект нельзя удалить",
+      "not_open": "Проект не открыт",
+      "not_in_progress": "Проект не в работе",
+      "specialist_did_not_apply": "Специалист не откликался на этот проект"
+    },
+    "applications": {
+      "specialist_only": "Откликаться могут только специалисты",
+      "project_not_open": "Проект закрыт для откликов",
+      "already_applied": "Вы уже откликнулись на этот проект",
+      "not_found": "Отклик не найден",
+      "not_yours": "Это не ваш отклик",
+      "not_pending": "Отклик не в статусе ожидания"
+    },
+    "offers": {
+      "duplicate": "Предложение уже существует",
+      "not_found": "Предложение не найдено",
+      "not_yours": "Это не ваше предложение",
+      "already_answered": "На предложение уже ответили"
+    },
+    "reviews": {
+      "project_not_completed": "Проект не завершён",
+      "not_participant": "Вы не участвовали в этом проекте",
+      "no_counterparty": "Нет второй стороны для отзыва",
+      "duplicate": "Вы уже оставили отзыв на этот проект"
+    },
+    "profiles": {
+      "specialist_only": "Профилем специалиста управляют только специалисты",
+      "category_required": "Нужно указать минимум одну категорию",
+      "customer_only": "Профилем заказчика управляют только заказчики",
+      "no_specialist_profile": "Профиль специалиста не создан",
+      "specialist_not_found": "Профиль не найден",
+      "customer_not_found": "Профиль не найден"
+    },
+    "services": {
+      "specialist_only": "Услугами управляют только специалисты",
+      "no_profile": "Сначала создайте профиль специалиста",
+      "duplicate_slug": "Дублирующиеся идентификаторы услуг в запросе",
+      "unknown_slugs": "Неизвестные идентификаторы услуг: {{slugs}}"
+    },
+    "chat": {
+      "customer_mismatch": "Несоответствие заказчика",
+      "project_closed": "Проект закрыт для чата",
+      "thread_not_found": "Тред не найден",
+      "thread_closed": "Тред закрыт",
+      "not_member": "Вы не участник этого треда"
+    },
+    "notifications": {
+      "not_found": "Не найдено"
+    },
+    "timeline": {
+      "specialist_only": "Лента доступна только специалистам",
+      "no_profile": "Сначала создайте профиль специалиста",
+      "item_not_found": "Запись не найдена",
+      "end_year_required": "Год окончания обязателен, если запись не текущая",
+      "end_year_before_start": "Год окончания должен быть не раньше года начала"
+    },
+    "validation": {
+      "failed": "Проверьте поля формы"
+    }
+  }
+}

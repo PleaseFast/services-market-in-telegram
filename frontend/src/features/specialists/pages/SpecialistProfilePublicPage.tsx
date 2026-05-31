@@ -1,4 +1,5 @@
 import { useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/avatar/Avatar";
@@ -6,13 +7,17 @@ import { usePublicSpecialist } from "@/features/specialist/api";
 import { ServicesBlock } from "@/features/specialist/components/services/ServicesBlock";
 import { ReviewsBlock } from "@/features/specialist/components/reviews/ReviewsBlock";
 import { StarRating } from "@/features/specialist/components/reviews/StarRating";
+import { categoryLabel } from "@/lib/categories";
 import type { TimelineItem } from "@/features/projects/types";
 
-function yearsRange(item: TimelineItem): string {
-  if (item.is_current) return `${item.start_year} – present`;
-  if (item.end_year === null) return `${item.start_year}`;
-  if (item.start_year === item.end_year) return `${item.start_year}`;
-  return `${item.start_year} – ${item.end_year}`;
+function useYearsRange() {
+  const { t } = useTranslation();
+  return (item: TimelineItem): string => {
+    if (item.is_current) return t("specialist.public.yearsRangePresent", { start: item.start_year });
+    if (item.end_year === null) return `${item.start_year}`;
+    if (item.start_year === item.end_year) return `${item.start_year}`;
+    return `${item.start_year} – ${item.end_year}`;
+  };
 }
 
 function ReadOnlyTimelineList({
@@ -22,6 +27,7 @@ function ReadOnlyTimelineList({
   items: TimelineItem[];
   emptyLabel: string;
 }) {
+  const yearsRange = useYearsRange();
   if (!items || items.length === 0) {
     return <p className="text-sm text-muted-foreground italic">{emptyLabel}</p>;
   }
@@ -44,15 +50,14 @@ function ReadOnlyTimelineList({
 }
 
 export function SpecialistProfilePublicPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { data: profile, isLoading, error } = usePublicSpecialist(id);
 
-  if (isLoading) return <p className="text-muted-foreground text-sm">Loading…</p>;
+  if (isLoading) return <p className="text-muted-foreground text-sm">{t("specialist.public.loading")}</p>;
   if (error || !profile) {
     return (
-      <p className="text-muted-foreground text-sm">
-        We couldn&apos;t find this specialist.
-      </p>
+      <p className="text-muted-foreground text-sm">{t("specialist.public.notFound")}</p>
     );
   }
 
@@ -71,19 +76,23 @@ export function SpecialistProfilePublicPage() {
                 </h1>
                 {(profile.categories ?? []).map((c) => (
                   <Badge key={c} tone="outline">
-                    {c}
+                    {categoryLabel(c)}
                   </Badge>
                 ))}
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <StarRating value={ratingAvg} />
                 <span className="text-sm text-muted-foreground">
-                  {ratingAvg.toFixed(2)} · {profile.rating_count}{" "}
-                  {profile.rating_count === 1 ? "review" : "reviews"}
+                  {profile.rating_count > 0
+                    ? t("specialist.public.reviewsCount", {
+                        count: profile.rating_count,
+                        value: ratingAvg.toFixed(2),
+                      })
+                    : t("specialist.reviews.empty")}
                 </span>
               </div>
               <p className="text-sm text-muted-foreground">
-                {profile.years_experience}+ years experience
+                {t("specialist.public.yearsExperience", { years: profile.years_experience })}
               </p>
             </div>
           </div>
@@ -95,7 +104,7 @@ export function SpecialistProfilePublicPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">Services and work conditions</CardTitle>
+          <CardTitle className="text-base font-medium">{t("specialist.public.servicesTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <ServicesBlock services={profile.services} />
@@ -104,28 +113,28 @@ export function SpecialistProfilePublicPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">Education and experience</CardTitle>
+          <CardTitle className="text-base font-medium">{t("specialist.public.experienceTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <section className="space-y-2">
-            <h3 className="text-sm font-semibold">Work experience</h3>
+            <h3 className="text-sm font-semibold">{t("specialist.public.work")}</h3>
             <ReadOnlyTimelineList
               items={profile.timeline.work}
-              emptyLabel="No work experience listed."
+              emptyLabel={t("specialist.public.emptyWork")}
             />
           </section>
           <section className="space-y-2">
-            <h3 className="text-sm font-semibold">Education</h3>
+            <h3 className="text-sm font-semibold">{t("specialist.public.education")}</h3>
             <ReadOnlyTimelineList
               items={profile.timeline.education}
-              emptyLabel="No education listed."
+              emptyLabel={t("specialist.public.emptyEducation")}
             />
           </section>
           <section className="space-y-2">
-            <h3 className="text-sm font-semibold">Achievements</h3>
+            <h3 className="text-sm font-semibold">{t("specialist.public.achievements")}</h3>
             <ReadOnlyTimelineList
               items={profile.timeline.achievement}
-              emptyLabel="No achievements listed."
+              emptyLabel={t("specialist.public.emptyAchievements")}
             />
           </section>
         </CardContent>

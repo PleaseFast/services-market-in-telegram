@@ -16,10 +16,10 @@ from app.services.errors import ConflictError, ForbiddenError, NotFoundError
 
 async def _ensure_specialist_profile(session: AsyncSession, user: User):
     if user.role != UserRole.SPECIALIST:
-        raise ForbiddenError("Only specialists have a timeline")
+        raise ForbiddenError("timeline.specialist_only", message="Only specialists have a timeline")
     profile = await get_profile_by_user(session, user.id)
     if profile is None:
-        raise ConflictError("Create your specialist profile first")
+        raise ConflictError("timeline.no_profile", message="Create your specialist profile first")
     return profile
 
 
@@ -57,7 +57,7 @@ async def update_item(
     profile = await _ensure_specialist_profile(session, user)
     item = await get_item(session, item_id)
     if item is None or item.profile_id != profile.id:
-        raise NotFoundError("Timeline item not found")
+        raise NotFoundError("timeline.item_not_found", message="Timeline item not found")
     payload = data.model_dump(exclude_unset=True)
     # Apply each field that was explicitly sent.
     for field in ("title", "description", "start_year", "is_current"):
@@ -72,9 +72,15 @@ async def update_item(
         item.end_year = None
     else:
         if item.end_year is None:
-            raise ConflictError("end_year is required when is_current is false")
+            raise ConflictError(
+                "timeline.end_year_required",
+                message="end_year is required when is_current is false",
+            )
         if item.end_year < item.start_year:
-            raise ConflictError("end_year must be >= start_year")
+            raise ConflictError(
+                "timeline.end_year_before_start",
+                message="end_year must be >= start_year",
+            )
     await session.commit()
     return item
 
@@ -83,7 +89,7 @@ async def delete_item(session: AsyncSession, user: User, item_id: UUID) -> None:
     profile = await _ensure_specialist_profile(session, user)
     item = await get_item(session, item_id)
     if item is None or item.profile_id != profile.id:
-        raise NotFoundError("Timeline item not found")
+        raise NotFoundError("timeline.item_not_found", message="Timeline item not found")
     await session.delete(item)
     await session.commit()
 
@@ -98,7 +104,7 @@ async def move_item(
     profile = await _ensure_specialist_profile(session, user)
     item = await get_item(session, item_id)
     if item is None or item.profile_id != profile.id:
-        raise NotFoundError("Timeline item not found")
+        raise NotFoundError("timeline.item_not_found", message="Timeline item not found")
     target_pos = item.position - 1 if direction == "up" else item.position + 1
     if target_pos < 0:
         return item  # already at top; no-op

@@ -3,9 +3,16 @@ classifier used to auto-assign a category to manually-created projects.
 
 This is the single source of truth on the server side. The frontend mirrors
 the same closed list in ``frontend/src/lib/categories.ts`` — keep both in sync.
+
+Category IDs stay English so they're stable across languages (storage,
+filters, indexes, query params). Localized display labels live in
+``CATEGORY_LABELS`` and are resolved per request from the caller's language.
 """
 
 from __future__ import annotations
+
+from app.core.i18n import DEFAULT as DEFAULT_LANG
+from app.core.i18n import SUPPORTED as SUPPORTED_LANGS
 
 CATEGORIES: tuple[str, ...] = (
     "Frontend",
@@ -23,9 +30,39 @@ DEFAULT_CATEGORY = "Other"
 
 _CATEGORY_SET = set(CATEGORIES)
 
+
+CATEGORY_LABELS: dict[str, dict[str, str]] = {
+    "ru": {
+        "Frontend": "Фронтенд",
+        "Backend": "Бэкенд",
+        "Bots": "Боты",
+        "Mobile": "Мобильная разработка",
+        "DevOps": "DevOps",
+        "Data": "Данные",
+        "Design": "Дизайн",
+        "AI": "ИИ",
+        "Other": "Другое",
+    },
+    "en": {c: c for c in CATEGORIES},
+}
+
+
+def label_for(category: str, lang: str = DEFAULT_LANG) -> str:
+    """Return the human-readable label for ``category`` in ``lang``.
+
+    Falls back to the English label (i.e. the canonical ID) for unknown
+    languages or categories so callers always get a printable string.
+    """
+    lang_key = lang if lang in SUPPORTED_LANGS else DEFAULT_LANG
+    table = CATEGORY_LABELS.get(lang_key, CATEGORY_LABELS[DEFAULT_LANG])
+    return table.get(category, category)
+
+
 # Keyword tables are intentionally lowercase. Match is plain substring on the
 # concatenated lowercase ``title + " " + description``. Multi-word keywords
-# are fine — they just won't match on partial words.
+# are fine — they just won't match on partial words. Russian entries make the
+# classifier work on Russian project briefs without needing per-language
+# pipelines.
 KEYWORDS: dict[str, tuple[str, ...]] = {
     "Bots": (
         "telegram bot",
@@ -35,6 +72,12 @@ KEYWORDS: dict[str, tuple[str, ...]] = {
         "discord bot",
         "whatsapp bot",
         "slack bot",
+        "бот",
+        "телеграм-бот",
+        "телеграм бот",
+        "чат-бот",
+        "дискорд-бот",
+        "вотсап-бот",
     ),
     "Frontend": (
         "react",
@@ -50,6 +93,15 @@ KEYWORDS: dict[str, tuple[str, ...]] = {
         "front-end",
         "ui ",
         "web ui",
+        "фронтенд",
+        "фронт-энд",
+        "лендинг",
+        "верстка",
+        "вёрстка",
+        "интерфейс",
+        "веб-интерфейс",
+        "дашборд",
+        "одностраничник",
     ),
     "Backend": (
         "fastapi",
@@ -67,6 +119,12 @@ KEYWORDS: dict[str, tuple[str, ...]] = {
         "back-end",
         "microservice",
         " api",
+        "бэкенд",
+        "бек-энд",
+        "сервер",
+        "серверная часть",
+        "микросервис",
+        "апи",
     ),
     "Mobile": (
         "ios",
@@ -76,6 +134,10 @@ KEYWORDS: dict[str, tuple[str, ...]] = {
         "swift",
         "kotlin",
         "mobile app",
+        "мобильное приложение",
+        "мобильная разработка",
+        "андроид",
+        "айос",
     ),
     "DevOps": (
         "docker",
@@ -89,6 +151,10 @@ KEYWORDS: dict[str, tuple[str, ...]] = {
         "azure",
         "devops",
         "infrastructure",
+        "девопс",
+        "инфраструктура",
+        "кубернетес",
+        "терраформ",
     ),
     "Data": (
         "etl",
@@ -100,6 +166,11 @@ KEYWORDS: dict[str, tuple[str, ...]] = {
         "analytics",
         "data warehouse",
         "spark",
+        "данные",
+        "хранилище данных",
+        "аналитика",
+        "etl-пайплайн",
+        "пайплайн данных",
     ),
     "Design": (
         "figma",
@@ -110,6 +181,14 @@ KEYWORDS: dict[str, tuple[str, ...]] = {
         "design system",
         "ux design",
         "visual design",
+        "дизайн",
+        "фигма",
+        "логотип",
+        "айдентика",
+        "брендинг",
+        "иллюстрация",
+        "ux-дизайн",
+        "юай-кит",
     ),
     "AI": (
         "llm",
@@ -123,6 +202,13 @@ KEYWORDS: dict[str, tuple[str, ...]] = {
         "ml model",
         "embedding",
         "vector db",
+        "ии",
+        "искусственный интеллект",
+        "машинное обучение",
+        "нейросеть",
+        "нейронн",
+        "ллм",
+        "эмбеддинг",
     ),
 }
 

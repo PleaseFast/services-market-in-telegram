@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Accordion,
   AccordionContent,
@@ -13,39 +14,28 @@ import {
 } from "@/features/specialist/api";
 import { groupCatalog, SERVICE_CATALOG } from "@/lib/serviceCatalog";
 import type { SpecialistService } from "@/features/projects/types";
+import { categoryLabel } from "@/lib/categories";
+import { ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface ServicesEditorProps {
   primaryCategory: string;
-  /** The specialist's currently-selected services (with prices). */
   selected: SpecialistService[];
   onSaved: () => void;
 }
 
-/**
- * Edit-mode editor for the Services & Work Conditions section.
- *
- * - The specialist's primary category is rendered first, always expanded.
- * - All other categories live under an "Other categories" accordion that's
- *   collapsed by default.
- * - Each service has a checkbox + price input.
- * - Hitting "Save services" PUTs all checked services to the backend in one
- *   replace-all request.
- */
 export function ServicesEditor({
   primaryCategory,
   selected,
   onSaved,
 }: ServicesEditorProps) {
+  const { t } = useTranslation();
   const catalogQuery = useServiceCatalog();
   const save = useReplaceMyServices();
   const [err, setErr] = useState<string | null>(null);
 
-  // Use server catalog if loaded, else the static mirror so the editor renders
-  // without waiting for a round-trip on the first paint.
   const catalog = catalogQuery.data ?? SERVICE_CATALOG.map((e, i) => ({ ...e, id: `mirror-${i}`, position: i }));
 
-  // Editable state: slug -> price string. Pre-populated from `selected`.
   const [priced, setPriced] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     for (const s of selected) init[s.slug] = s.price_amount;
@@ -79,7 +69,7 @@ export function ServicesEditor({
       await save.mutateAsync(items);
       onSaved();
     } catch (e: unknown) {
-      setErr((e as Error).message);
+      setErr(e instanceof ApiError ? e.localized() : (e as Error).message);
     }
   }
 
@@ -87,7 +77,7 @@ export function ServicesEditor({
     <div className="space-y-4">
       {primary && (
         <CategoryBlock
-          label={primary.category}
+          label={categoryLabel(primary.category)}
           subcategories={primary.subcategories}
           priced={priced}
           onToggle={toggle}
@@ -99,12 +89,14 @@ export function ServicesEditor({
       {others.length > 0 && (
         <Accordion type="single" collapsible>
           <AccordionItem value="other-categories">
-            <AccordionTrigger className="font-medium">Other categories</AccordionTrigger>
+            <AccordionTrigger className="font-medium">
+              {t("specialist.services.otherCategories")}
+            </AccordionTrigger>
             <AccordionContent className="space-y-4 pt-2">
               {others.map((g) => (
                 <CategoryBlock
                   key={g.category}
-                  label={g.category}
+                  label={categoryLabel(g.category)}
                   subcategories={g.subcategories}
                   priced={priced}
                   onToggle={toggle}
@@ -123,7 +115,7 @@ export function ServicesEditor({
         disabled={save.isPending}
         className="h-11"
       >
-        {save.isPending ? "Saving…" : "Save services"}
+        {save.isPending ? t("specialist.services.saving") : t("specialist.services.save")}
       </Button>
     </div>
   );
@@ -144,8 +136,7 @@ function CategoryBlock({
   onPrice: (slug: string, value: string) => void;
   alwaysOpen?: boolean;
 }) {
-  // Subcategories always collapsible. Primary category sits inside a "block"
-  // that's not itself collapsible — its subcategories collapse individually.
+  const { t } = useTranslation();
   return (
     <div className={cn("space-y-2", alwaysOpen ? "" : "pl-2")}>
       <p className="text-sm font-semibold">{label}</p>
@@ -176,7 +167,9 @@ function CategoryBlock({
                         {item.label}
                       </label>
                       <div className="flex items-center gap-1">
-                        <span className="text-xs text-muted-foreground">$</span>
+                        <span className="text-xs text-muted-foreground">
+                          {t("specialist.services.currencyHint")}
+                        </span>
                         <Input
                           type="number"
                           inputMode="decimal"
@@ -185,7 +178,7 @@ function CategoryBlock({
                           value={priced[item.slug] ?? ""}
                           onChange={(e) => onPrice(item.slug, e.target.value)}
                           disabled={!isSelected}
-                          aria-label={`Price for ${item.label}`}
+                          aria-label={t("specialist.services.priceFor", { label: item.label })}
                           className="w-24"
                         />
                       </div>

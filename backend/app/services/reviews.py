@@ -47,18 +47,20 @@ async def create_review(
 ) -> Review:
     project = await get_project(session, project_id)
     if project is None:
-        raise NotFoundError("Project not found")
+        raise NotFoundError("projects.not_found", message="Project not found")
     if project.status not in (ProjectStatus.COMPLETED, ProjectStatus.ARCHIVED):
-        raise ConflictError("Project not completed")
+        raise ConflictError("reviews.project_not_completed", message="Project not completed")
     if user.id not in (project.customer_id, project.selected_specialist_id):
-        raise ForbiddenError("You did not participate in this project")
+        raise ForbiddenError(
+            "reviews.not_participant", message="You did not participate in this project"
+        )
     subject_id = (
         project.selected_specialist_id
         if user.id == project.customer_id
         else project.customer_id
     )
     if subject_id is None:
-        raise ConflictError("No counterparty to review")
+        raise ConflictError("reviews.no_counterparty", message="No counterparty to review")
 
     review = Review(
         project_id=project_id,
@@ -72,7 +74,9 @@ async def create_review(
         await session.flush()
     except IntegrityError as e:
         await session.rollback()
-        raise ConflictError("You already reviewed this project") from e
+        raise ConflictError(
+            "reviews.duplicate", message="You already reviewed this project"
+        ) from e
 
     await _recompute_rating(session, subject_id)
     await notify(

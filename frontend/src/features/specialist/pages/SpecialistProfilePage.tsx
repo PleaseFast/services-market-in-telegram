@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { AvatarPicker } from "@/components/avatar/AvatarPicker";
-import { CATEGORIES, clampCategory } from "@/lib/categories";
+import { CATEGORIES, categoryLabel, clampCategory } from "@/lib/categories";
 import { DEFAULT_AVATAR_ID } from "@/lib/avatars";
 import { useAuthStore } from "@/stores/auth";
 import { useMyProfile, useSaveProfile } from "../api";
@@ -17,18 +18,17 @@ import { TimelineSection } from "../components/timeline/TimelineSection";
 import { ServicesEditor } from "../components/services/ServicesEditor";
 import { ServicesBlock } from "../components/services/ServicesBlock";
 
-const schema = z.object({
-  full_name: z.string().min(2),
-  age: z.coerce.number().int().min(14).max(120),
-  categories: z.array(z.enum(CATEGORIES)).min(1, "Pick at least one category"),
-  years_experience: z.coerce.number().int().min(0).max(80),
-  bio: z.string().min(1, "Bio is required").max(4000),
-  avatar_id: z.string().min(1).max(40),
-});
-
-type FormValues = z.infer<typeof schema>;
+type FormValues = {
+  full_name: string;
+  age: number;
+  categories: Array<(typeof CATEGORIES)[number]>;
+  years_experience: number;
+  bio: string;
+  avatar_id: string;
+};
 
 export function SpecialistProfilePage() {
+  const { t } = useTranslation();
   const { data: profile } = useMyProfile();
   const save = useSaveProfile();
   const navigate = useNavigate();
@@ -37,6 +37,21 @@ export function SpecialistProfilePage() {
   const setProfileComplete = useAuthStore((s) => s.setProfileComplete);
   const [ok, setOk] = useState(false);
   const [editingServices, setEditingServices] = useState(false);
+
+  const schema = useMemo(
+    () =>
+      z.object({
+        full_name: z.string().min(2),
+        age: z.coerce.number().int().min(14).max(120),
+        categories: z
+          .array(z.enum(CATEGORIES))
+          .min(1, t("specialist.profile.pickAtLeastOne")),
+        years_experience: z.coerce.number().int().min(0).max(80),
+        bio: z.string().min(1, t("specialist.profile.bioRequired")).max(4000),
+        avatar_id: z.string().min(1).max(40),
+      }),
+    [t],
+  );
 
   const {
     register,
@@ -87,18 +102,19 @@ export function SpecialistProfilePage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
-      <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Your profile</h1>
+      <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+        {t("specialist.profile.title")}
+      </h1>
 
       {isOnboarding && (
         <div className="rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Complete your specialist details to start receiving projects. Once you save
-          you&apos;ll be taken to the open-projects feed.
+          {t("specialist.profile.onboardingHint")}
         </div>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">Avatar</CardTitle>
+          <CardTitle className="text-base font-medium">{t("specialist.profile.avatar")}</CardTitle>
         </CardHeader>
         <CardContent>
           <Controller
@@ -113,12 +129,12 @@ export function SpecialistProfilePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">Specialist details</CardTitle>
+          <CardTitle className="text-base font-medium">{t("specialist.profile.details")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-1">
-              <Label htmlFor="full_name">Full name</Label>
+              <Label htmlFor="full_name">{t("specialist.profile.fullName")}</Label>
               <Input id="full_name" {...register("full_name")} />
               {errors.full_name && (
                 <p className="text-xs text-destructive">{errors.full_name.message}</p>
@@ -126,11 +142,11 @@ export function SpecialistProfilePage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label htmlFor="age">Age</Label>
+                <Label htmlFor="age">{t("specialist.profile.age")}</Label>
                 <Input id="age" type="number" inputMode="numeric" {...register("age")} />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="years_experience">Years experience</Label>
+                <Label htmlFor="years_experience">{t("specialist.profile.yearsExperience")}</Label>
                 <Input
                   id="years_experience"
                   type="number"
@@ -140,10 +156,8 @@ export function SpecialistProfilePage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Specializations</Label>
-              <p className="text-xs text-muted-foreground">
-                Pick one or more — you&apos;ll see projects from every category you select.
-              </p>
+              <Label>{t("specialist.profile.specializations")}</Label>
+              <p className="text-xs text-muted-foreground">{t("specialist.profile.specializationsHint")}</p>
               <Controller
                 control={control}
                 name="categories"
@@ -174,7 +188,7 @@ export function SpecialistProfilePage() {
                               onChange={(e) => toggle(c, e.target.checked)}
                               className="h-4 w-4"
                             />
-                            <span>{c}</span>
+                            <span>{categoryLabel(c)}</span>
                           </label>
                         );
                       })}
@@ -187,19 +201,19 @@ export function SpecialistProfilePage() {
               )}
             </div>
             <div className="space-y-1">
-              <Label htmlFor="bio">Bio</Label>
+              <Label htmlFor="bio">{t("specialist.profile.bio")}</Label>
               <Textarea id="bio" rows={5} {...register("bio")} />
               {errors.bio && (
                 <p className="text-xs text-destructive">{errors.bio.message}</p>
               )}
             </div>
-            {ok && <p className="text-sm text-emerald-600">Profile saved.</p>}
+            {ok && <p className="text-sm text-emerald-600">{t("specialist.profile.saved")}</p>}
             <Button type="submit" disabled={isSubmitting} className="h-11">
               {isSubmitting
-                ? "Saving…"
+                ? t("specialist.profile.savingShort")
                 : isOnboarding
-                  ? "Save and continue"
-                  : "Save details"}
+                  ? t("specialist.profile.saveAndContinue")
+                  : t("specialist.profile.saveDetails")}
             </Button>
           </form>
         </CardContent>
@@ -208,7 +222,9 @@ export function SpecialistProfilePage() {
       {profile && !isOnboarding && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-            <CardTitle className="text-base font-medium">Services and work conditions</CardTitle>
+            <CardTitle className="text-base font-medium">
+              {t("specialist.profile.servicesHeader")}
+            </CardTitle>
             {!editingServices ? (
               <Button
                 variant="outline"
@@ -216,7 +232,7 @@ export function SpecialistProfilePage() {
                 className="h-9"
                 onClick={() => setEditingServices(true)}
               >
-                Edit
+                {t("specialist.profile.servicesEdit")}
               </Button>
             ) : (
               <Button
@@ -225,7 +241,7 @@ export function SpecialistProfilePage() {
                 className="h-9"
                 onClick={() => setEditingServices(false)}
               >
-                Done
+                {t("specialist.profile.servicesDone")}
               </Button>
             )}
           </CardHeader>
@@ -246,28 +262,30 @@ export function SpecialistProfilePage() {
       {profile && !isOnboarding && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-medium">Education and experience</CardTitle>
+            <CardTitle className="text-base font-medium">
+              {t("specialist.profile.experienceHeader")}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-8">
             <TimelineSection
               kind="work"
-              title="Work experience"
-              addLabel="Add work experience"
-              currentToggleLabel="Currently working here"
+              title={t("specialist.profile.timelineWork")}
+              addLabel={t("specialist.profile.addWork")}
+              currentToggleLabel={t("specialist.profile.currentWork")}
               items={profile.timeline.work}
             />
             <TimelineSection
               kind="education"
-              title="Education"
-              addLabel="Add education"
-              currentToggleLabel="Currently studying here"
+              title={t("specialist.profile.timelineEducation")}
+              addLabel={t("specialist.profile.addEducation")}
+              currentToggleLabel={t("specialist.profile.currentStudy")}
               items={profile.timeline.education}
             />
             <TimelineSection
               kind="achievement"
-              title="Achievements"
-              addLabel="Add achievement"
-              currentToggleLabel="Present time"
+              title={t("specialist.profile.timelineAchievements")}
+              addLabel={t("specialist.profile.addAchievement")}
+              currentToggleLabel={t("specialist.profile.currentPresent")}
               items={profile.timeline.achievement}
             />
           </CardContent>

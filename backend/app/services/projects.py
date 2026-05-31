@@ -19,7 +19,7 @@ from app.services.notifications import NotificationType, notify
 
 def _ensure_customer(user: User) -> None:
     if user.role != UserRole.CUSTOMER:
-        raise ForbiddenError("Only customers can perform this action")
+        raise ForbiddenError("projects.customer_only", message="Only customers can perform this action")
 
 
 async def create_project(session: AsyncSession, user: User, data: ProjectIn) -> Project:
@@ -78,7 +78,10 @@ async def _resolve_category(
 async def update_project(session: AsyncSession, user: User, project_id: UUID, patch: ProjectPatch) -> Project:
     project = await _owned_project(session, user, project_id)
     if project.status not in (ProjectStatus.DRAFT, ProjectStatus.OPEN, ProjectStatus.PAUSED):
-        raise ConflictError("Only draft/open/paused projects can be edited")
+        raise ConflictError(
+            "projects.bad_state_edit",
+            message="Only draft/open/paused projects can be edited",
+        )
     for field, value in patch.model_dump(exclude_unset=True).items():
         setattr(project, field, value)
     await session.commit()
@@ -92,7 +95,9 @@ async def update_project(session: AsyncSession, user: User, project_id: UUID, pa
 async def publish_project(session: AsyncSession, user: User, project_id: UUID) -> Project:
     project = await _owned_project(session, user, project_id)
     if project.status != ProjectStatus.DRAFT:
-        raise ConflictError("Only draft projects can be published")
+        raise ConflictError(
+            "projects.bad_state_publish", message="Only draft projects can be published"
+        )
     project.status = ProjectStatus.OPEN
     if project.published_at is None:
         project.published_at = datetime.now(timezone.utc)
@@ -109,7 +114,7 @@ async def select_specialist(
 ) -> Project:
     project = await _owned_project(session, user, project_id)
     if project.status != ProjectStatus.OPEN:
-        raise ConflictError("Project not open")
+        raise ConflictError("projects.not_open", message="Project not open")
 
     # Validate the specialist actually applied (or had a direct offer accepted)
     from sqlalchemy import select
@@ -121,7 +126,10 @@ async def select_specialist(
     )
     application = app_res.scalar_one_or_none()
     if application is None:
-        raise ConflictError("Specialist has not applied to this project")
+        raise ConflictError(
+            "projects.specialist_did_not_apply",
+            message="Specialist has not applied to this project",
+        )
 
     # Mark selected; reject others; close other chat threads
     application.status = ApplicationStatus.ACCEPTED
@@ -174,7 +182,9 @@ async def select_specialist(
 async def complete_project(session: AsyncSession, user: User, project_id: UUID) -> Project:
     project = await _owned_project(session, user, project_id)
     if project.status != ProjectStatus.IN_PROGRESS:
-        raise ConflictError("Project is not in progress")
+        raise ConflictError(
+            "projects.not_in_progress", message="Project is not in progress"
+        )
     project.status = ProjectStatus.COMPLETED
     if project.selected_specialist_id:
         await notify(
@@ -194,7 +204,10 @@ async def complete_project(session: AsyncSession, user: User, project_id: UUID) 
 async def archive_project(session: AsyncSession, user: User, project_id: UUID) -> Project:
     project = await _project_visible_to(session, user, project_id)
     if project.status not in (ProjectStatus.COMPLETED, ProjectStatus.CANCELED):
-        raise ConflictError("Only completed/canceled projects can be archived")
+        raise ConflictError(
+            "projects.bad_state_archive",
+            message="Only completed/canceled projects can be archived",
+        )
     project.status = ProjectStatus.ARCHIVED
     await session.commit()
     # ``onupdate=func.now()`` marks ``updated_at`` as expired post-UPDATE;
@@ -207,7 +220,10 @@ async def archive_project(session: AsyncSession, user: User, project_id: UUID) -
 async def cancel_project(session: AsyncSession, user: User, project_id: UUID) -> Project:
     project = await _owned_project(session, user, project_id)
     if project.status not in (ProjectStatus.DRAFT, ProjectStatus.OPEN, ProjectStatus.PAUSED):
-        raise ConflictError("Only draft/open/paused projects can be canceled")
+        raise ConflictError(
+            "projects.bad_state_cancel",
+            message="Only draft/open/paused projects can be canceled",
+        )
     project.status = ProjectStatus.CANCELED
     await session.commit()
     # ``onupdate=func.now()`` marks ``updated_at`` as expired post-UPDATE;
@@ -220,7 +236,9 @@ async def cancel_project(session: AsyncSession, user: User, project_id: UUID) ->
 async def pause_project(session: AsyncSession, user: User, project_id: UUID) -> Project:
     project = await _owned_project(session, user, project_id)
     if project.status != ProjectStatus.OPEN:
-        raise ConflictError("Only open projects can be paused")
+        raise ConflictError(
+            "projects.bad_state_pause", message="Only open projects can be paused"
+        )
     project.status = ProjectStatus.PAUSED
     await session.commit()
     await session.refresh(project)
@@ -230,7 +248,9 @@ async def pause_project(session: AsyncSession, user: User, project_id: UUID) -> 
 async def resume_project(session: AsyncSession, user: User, project_id: UUID) -> Project:
     project = await _owned_project(session, user, project_id)
     if project.status != ProjectStatus.PAUSED:
-        raise ConflictError("Only paused projects can be resumed")
+        raise ConflictError(
+            "projects.bad_state_resume", message="Only paused projects can be resumed"
+        )
     project.status = ProjectStatus.OPEN
     await session.commit()
     await session.refresh(project)
@@ -248,7 +268,9 @@ _DELETABLE_STATUSES = (
 async def delete_project(session: AsyncSession, user: User, project_id: UUID) -> None:
     project = await _owned_project(session, user, project_id)
     if project.status not in _DELETABLE_STATUSES:
-        raise ConflictError("Active projects cannot be deleted")
+        raise ConflictError(
+            "projects.bad_state_delete", message="Active projects cannot be deleted"
+        )
     project.deleted_at = datetime.now(timezone.utc)
     await session.commit()
 
@@ -279,16 +301,16 @@ async def count_higher_rated_applicants(
 async def _owned_project(session: AsyncSession, user: User, project_id: UUID) -> Project:
     project = await get_project(session, project_id)
     if project is None or project.deleted_at is not None:
-        raise NotFoundError("Project not found")
+        raise NotFoundError("projects.not_found", message="Project not found")
     if project.customer_id != user.id:
-        raise ForbiddenError("Not your project")
+        raise ForbiddenError("projects.not_yours", message="Not your project")
     return project
 
 
 async def _project_visible_to(session: AsyncSession, user: User, project_id: UUID) -> Project:
     project = await get_project(session, project_id)
     if project is None or project.deleted_at is not None:
-        raise NotFoundError("Project not found")
+        raise NotFoundError("projects.not_found", message="Project not found")
     if user.id not in (project.customer_id, project.selected_specialist_id):
-        raise ForbiddenError("Not visible")
+        raise ForbiddenError("projects.not_visible", message="Not visible")
     return project

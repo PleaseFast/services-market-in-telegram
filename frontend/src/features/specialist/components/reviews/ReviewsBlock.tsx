@@ -1,35 +1,36 @@
+import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
 import { useUserReviews } from "@/features/specialist/api";
 import { StarRating } from "./StarRating";
 
 interface ReviewsBlockProps {
-  /** The reviewed user's user_id. */
   userId: string;
-  /** Aggregate average from SpecialistProfile.rating_avg. */
   ratingAvg: number;
-  /** Aggregate count from SpecialistProfile.rating_count. */
   ratingCount: number;
 }
 
 export function ReviewsBlock({ userId, ratingAvg, ratingCount }: ReviewsBlockProps) {
+  const { t } = useTranslation();
   const { data, isLoading } = useUserReviews(userId);
   const items = data?.items ?? [];
 
   return (
     <section className="space-y-4">
       <div className="flex items-baseline gap-3 flex-wrap">
-        <h3 className="text-base font-medium">Reviews</h3>
+        <h3 className="text-base font-medium">{t("specialist.reviews.title")}</h3>
         <div className="flex items-center gap-2">
           <StarRating value={ratingAvg} />
           <span className="text-sm text-muted-foreground">
-            {ratingAvg.toFixed(2)} · {ratingCount} {ratingCount === 1 ? "review" : "reviews"}
+            {ratingCount > 0
+              ? t("specialist.reviews.count", { count: ratingCount, value: ratingAvg.toFixed(2) })
+              : t("specialist.reviews.empty")}
           </span>
         </div>
       </div>
-      {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
+      {isLoading && <p className="text-muted-foreground text-sm">{t("specialist.reviews.loading")}</p>}
       {!isLoading && items.length === 0 && (
-        <p className="text-sm text-muted-foreground italic">No reviews yet.</p>
+        <p className="text-sm text-muted-foreground italic">{t("specialist.reviews.empty")}</p>
       )}
       <div className="space-y-3">
         {items.map((r) => (
@@ -38,7 +39,9 @@ export function ReviewsBlock({ userId, ratingAvg, ratingCount }: ReviewsBlockPro
               <div className="flex items-start justify-between gap-2 flex-wrap">
                 <div className="flex flex-col">
                   <p className="font-medium leading-tight">{r.project_title}</p>
-                  <p className="text-xs text-muted-foreground">by {r.author_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("specialist.reviews.byAuthor", { author: r.author_name })}
+                  </p>
                 </div>
                 <p className="text-xs text-muted-foreground">{formatDate(r.created_at)}</p>
               </div>

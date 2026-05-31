@@ -1,7 +1,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
-import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,14 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { register as registerApi } from "../api";
 import { useAuthStore } from "@/stores/auth";
+import { ApiError } from "@/lib/api";
 
-const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8, "Min 8 characters"),
-  role: z.enum(["specialist", "customer"]),
-});
-
-type FormValues = z.infer<typeof schema>;
+type FormValues = {
+  email: string;
+  password: string;
+  role: "specialist" | "customer";
+};
 
 function safeNext(raw: string | null): string | null {
   if (!raw) return null;
@@ -26,6 +26,7 @@ function safeNext(raw: string | null): string | null {
 }
 
 export function RegisterPage() {
+  const { t } = useTranslation();
   const nav = useNavigate();
   const [params] = useSearchParams();
   const next = safeNext(params.get("next"));
@@ -34,6 +35,17 @@ export function RegisterPage() {
   const enterGuest = useAuthStore((s) => s.enterGuest);
 
   const [err, setErr] = useState<string | null>(null);
+
+  const schema = useMemo(
+    () =>
+      z.object({
+        email: z.string().email(t("validation.email")),
+        password: z.string().min(8, t("validation.passwordMin", { count: 8 })),
+        role: z.enum(["specialist", "customer"]),
+      }),
+    [t],
+  );
+
   const {
     register,
     handleSubmit,
@@ -45,10 +57,6 @@ export function RegisterPage() {
     defaultValues: { role: isRoleLocked ? (lockedRole as "customer" | "specialist") : "customer" },
   });
   const role = watch("role");
-  // The guest path is offered only inside the specialist auth flow — either
-  // the role is locked to specialist (came from the "For specialists" header
-  // entry point) or the user has actively picked "Specialist" in the role
-  // selector. Customers don't browse anonymously here.
   const showGuestOption = isRoleLocked
     ? lockedRole === "specialist"
     : role === "specialist";
@@ -66,7 +74,6 @@ export function RegisterPage() {
         isRoleLocked ? (lockedRole as "customer" | "specialist") : values.role,
       );
       if (next) {
-        // Forward search params (autosubmit, etc.) onto the destination.
         const fwd = new URLSearchParams();
         for (const [k, v] of params.entries()) {
           if (k !== "next" && k !== "role") fwd.set(k, v);
@@ -77,34 +84,30 @@ export function RegisterPage() {
       }
       nav(me.role === "customer" ? "/c/profile?onboarding=1" : "/s/profile?onboarding=1");
     } catch (e: unknown) {
-      setErr((e as Error).message);
+      const message = e instanceof ApiError ? e.localized() : (e as Error).message;
+      setErr(message);
     }
   }
 
-  // Preserve search params on the "Sign in" link so the auth context isn't lost.
   const signInHref = `/login${params.toString() ? `?${params.toString()}` : ""}`;
 
   return (
     <div className="max-w-md mx-auto pt-12">
       <Card className="border-0 shadow-none md:border md:shadow-sm">
         <CardHeader>
-          <CardTitle className="text-2xl">Create your account</CardTitle>
+          <CardTitle className="text-2xl">{t("auth.register.title")}</CardTitle>
           {isRoleLocked && lockedRole === "customer" && (
-            <p className="text-sm text-muted-foreground">
-              You're publishing a project — we&apos;ll create a customer account so you can manage it.
-            </p>
+            <p className="text-sm text-muted-foreground">{t("auth.register.intentCustomer")}</p>
           )}
           {isRoleLocked && lockedRole === "specialist" && (
-            <p className="text-sm text-muted-foreground">
-              Set up your specialist account to apply to projects.
-            </p>
+            <p className="text-sm text-muted-foreground">{t("auth.register.intentSpecialist")}</p>
           )}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {!isRoleLocked && (
               <div className="space-y-1.5">
-                <Label>I am a…</Label>
+                <Label>{t("auth.register.roleLabel")}</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {(["customer", "specialist"] as const).map((r) => (
                     <Button
@@ -113,7 +116,9 @@ export function RegisterPage() {
                       variant={role === r ? "default" : "outline"}
                       onClick={() => setValue("role", r)}
                     >
-                      {r === "customer" ? "Customer" : "Specialist"}
+                      {r === "customer"
+                        ? t("auth.register.roleCustomer")
+                        : t("auth.register.roleSpecialist")}
                     </Button>
                   ))}
                 </div>
@@ -121,31 +126,29 @@ export function RegisterPage() {
               </div>
             )}
             <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("auth.register.emailLabel")}</Label>
               <Input id="email" type="email" {...register("email")} />
               {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("auth.register.passwordLabel")}</Label>
               <Input id="password" type="password" {...register("password")} />
               {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
             </div>
             {err && <p className="text-sm text-destructive">{err}</p>}
             <Button type="submit" disabled={isSubmitting} className="w-full">
-              {isSubmitting ? "Creating…" : "Create account"}
+              {isSubmitting ? t("auth.register.submitting") : t("auth.register.submit")}
             </Button>
             <p className="text-sm text-muted-foreground text-center">
-              Already have one?{" "}
+              {t("auth.register.haveAccount")}{" "}
               <Link to={signInHref} className="text-foreground underline-offset-4 hover:underline">
-                Sign in
+                {t("auth.register.signIn")}
               </Link>
             </p>
           </form>
           {showGuestOption && (
             <div className="mt-6 pt-5 border-t text-center space-y-1">
-              <p className="text-sm text-muted-foreground">
-                Not ready to sign up?
-              </p>
+              <p className="text-sm text-muted-foreground">{t("auth.register.notReady")}</p>
               <button
                 type="button"
                 onClick={() => {
@@ -154,7 +157,7 @@ export function RegisterPage() {
                 }}
                 className="text-sm font-medium text-foreground underline underline-offset-4 hover:opacity-80"
               >
-                Browse projects as a guest
+                {t("auth.register.browseAsGuest")}
               </button>
             </div>
           )}

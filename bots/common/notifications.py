@@ -9,11 +9,15 @@ from typing import Awaitable, Callable
 
 from aiogram import Bot
 
+from app.core.i18n import DEFAULT as DEFAULT_LANG
 from app.core.redis import get_redis
+from bots.common.db import SessionLocal
+from bots.common.lang import language_for_user_id
 
 log = logging.getLogger(__name__)
 
-Formatter = Callable[[dict], str]
+# A formatter receives the parsed payload and the recipient's language.
+Formatter = Callable[[dict, str], str]
 
 
 async def run_notification_loop(
@@ -43,8 +47,14 @@ async def run_notification_loop(
             chat_id = await user_chat_lookup(user_id)
             if chat_id is None:
                 continue
-            text = formatter(payload)
-            await bot.send_message(chat_id, text)
+            lang = DEFAULT_LANG
+            try:
+                async with SessionLocal() as session:
+                    lang = await language_for_user_id(session, user_id)
+            except Exception:
+                log.exception("Failed to resolve language for %s — falling back", user_id)
+            text = formatter(payload, lang)
+            await bot.send_message(chat_id, text, parse_mode="HTML")
         except Exception:
             log.exception("Failed to deliver notification")
             await asyncio.sleep(0.1)

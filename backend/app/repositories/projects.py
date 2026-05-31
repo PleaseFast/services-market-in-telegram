@@ -7,7 +7,12 @@ from uuid import UUID
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.project import Project, ProjectStatus, ProjectTemplate
+from app.models.project import (
+    Project,
+    ProjectStatus,
+    ProjectTemplate,
+    ProjectTemplateTranslation,
+)
 from app.models.project_view import ProjectView
 
 SortMode = Literal["newest", "viewed"]
@@ -129,3 +134,35 @@ async def list_projects_for_specialist(
 async def list_templates(session: AsyncSession) -> list[ProjectTemplate]:
     res = await session.execute(select(ProjectTemplate).order_by(ProjectTemplate.category, ProjectTemplate.title))
     return list(res.scalars().all())
+
+
+async def list_templates_localized(
+    session: AsyncSession, lang: str
+) -> list[tuple[ProjectTemplate, str, str]]:
+    """Return (template, localized_title, localized_description) triples.
+
+    Falls back to the canonical English row when a translation for ``lang``
+    isn't seeded yet — that way the API never returns blanks even mid-rollout.
+    """
+    res = await session.execute(
+        select(ProjectTemplate).order_by(ProjectTemplate.category, ProjectTemplate.title)
+    )
+    templates = list(res.scalars().all())
+    if not templates:
+        return []
+    ids = [t.id for t in templates]
+    tres = await session.execute(
+        select(ProjectTemplateTranslation).where(
+            ProjectTemplateTranslation.template_id.in_(ids),
+            ProjectTemplateTranslation.locale == lang,
+        )
+    )
+    by_id = {tr.template_id: tr for tr in tres.scalars().all()}
+    out: list[tuple[ProjectTemplate, str, str]] = []
+    for t in templates:
+        tr = by_id.get(t.id)
+        if tr is not None:
+            out.append((t, tr.title, tr.description))
+        else:
+            out.append((t, t.title, t.description_template))
+    return out

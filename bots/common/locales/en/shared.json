@@ -1,0 +1,15 @@
+{
+  "shared": {
+    "not_allowed": "Not allowed",
+    "sign_up_first": "Sign up on the web app first.",
+    "open_app": "🚀 Open Doings (Mini App)",
+    "language_changed": "Language switched to English 🇬🇧",
+    "language_usage": "Usage: /lang ru or /lang en",
+    "unknown_language": "Unknown language: {language}. Supported: {supported}.",
+    "error_prefix": "⚠️ {message}"
+  },
+  "lang_names": {
+    "ru": "Russian",
+    "en": "English"
+  }
+}

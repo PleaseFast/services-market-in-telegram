@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { TimelineItem, TimelineKind } from "@/features/projects/types";
@@ -20,6 +21,7 @@ export function TimelineSection({
   currentToggleLabel,
   items,
 }: TimelineSectionProps) {
+  const { t } = useTranslation();
   const [adding, setAdding] = useState(false);
   const sorted = [...items].sort((a, b) => a.position - b.position);
 
@@ -60,7 +62,7 @@ export function TimelineSection({
           />
         )}
         {!adding && sorted.length === 0 && (
-          <p className="text-sm text-muted-foreground italic">No entries yet.</p>
+          <p className="text-sm text-muted-foreground italic">{t("specialist.timeline.empty")}</p>
         )}
       </div>
     </section>

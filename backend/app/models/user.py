@@ -30,6 +30,9 @@ class User(UUIDPK, Timestamps, SoftDelete, Base):
         nullable=False,
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    language: Mapped[str] = mapped_column(
+        String(5), nullable=False, server_default="ru", default="ru"
+    )
 
     specialist_profile: Mapped["SpecialistProfile | None"] = relationship(
         back_populates="user", uselist=False, cascade="all, delete-orphan"

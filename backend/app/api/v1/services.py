@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from app.core.deps import CurrentUser, SessionDep
 from app.repositories.services import list_catalog, list_for_profile
@@ -11,6 +11,7 @@ from app.schemas.services import (
     SpecialistServicesReplace,
 )
 from app.services import specialist_services as svc
+from app.services.errors import NotFoundError
 
 router = APIRouter(tags=["services"])
 
@@ -27,7 +28,7 @@ async def get_specialist_services(
 ) -> list[SpecialistServiceOut]:
     profile = await get_profile_by_user(session, user_id)
     if profile is None:
-        raise HTTPException(404, "Profile not found")
+        raise NotFoundError("profiles.specialist_not_found", message="Profile not found")
     return await list_for_profile(session, profile.id)
 
 

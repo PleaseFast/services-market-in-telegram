@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { http } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ interface NotificationItem {
 }
 
 export function NotificationsPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { data } = useQuery({
     queryKey: ["notifications"],
@@ -23,19 +25,25 @@ export function NotificationsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
   });
 
+  const typeLabel = (type: string) => {
+    const key = `notifications.types.${type}`;
+    const translated = t(key);
+    return translated !== key ? translated : type.replace(/_/g, " ");
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Notifications</h1>
+      <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">{t("notifications.title")}</h1>
       <div className="space-y-3">
         {data?.length === 0 && (
-          <p className="text-muted-foreground text-sm">Nothing yet — quiet day.</p>
+          <p className="text-muted-foreground text-sm">{t("notifications.empty")}</p>
         )}
         {data?.map((n) => (
           <Card key={n.id}>
             <CardHeader>
               <div className="flex justify-between items-center gap-2">
-                <CardTitle className="text-sm font-medium">{prettyType(n.type)}</CardTitle>
-                {!n.read_at && <Badge tone="outline">new</Badge>}
+                <CardTitle className="text-sm font-medium">{typeLabel(n.type)}</CardTitle>
+                {!n.read_at && <Badge tone="outline">{t("notifications.newBadge")}</Badge>}
               </div>
             </CardHeader>
             <CardContent className="flex justify-between items-center">
@@ -44,7 +52,7 @@ export function NotificationsPage() {
               </pre>
               {!n.read_at && (
                 <Button size="sm" variant="ghost" onClick={() => markRead.mutate(n.id)}>
-                  Mark read
+                  {t("notifications.markRead")}
                 </Button>
               )}
             </CardContent>
@@ -53,8 +61,4 @@ export function NotificationsPage() {
       </div>
     </div>
   );
-}
-
-function prettyType(t: string): string {
-  return t.replace(/_/g, " ");
 }

@@ -1,18 +1,21 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { StarRatingInput } from "@/features/specialist/components/reviews/StarRatingInput";
 import { StarRating } from "@/features/specialist/components/reviews/StarRating";
 import { useCreateReview } from "@/features/projects/api";
+import { ApiError } from "@/lib/api";
 
 interface LeaveReviewCardProps {
   projectId: string;
-  /** "the specialist" or "the customer" — used in copy. */
-  subjectLabel: string;
+  /** "specialist" or "customer" — picks the right subject phrase in copy. */
+  subject: "specialist" | "customer";
 }
 
-export function LeaveReviewCard({ projectId, subjectLabel }: LeaveReviewCardProps) {
+export function LeaveReviewCard({ projectId, subject }: LeaveReviewCardProps) {
+  const { t } = useTranslation();
   const create = useCreateReview(projectId);
   const [rating, setRating] = useState(0);
   const [text, setText] = useState("");
@@ -23,7 +26,7 @@ export function LeaveReviewCard({ projectId, subjectLabel }: LeaveReviewCardProp
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">Your review</CardTitle>
+          <CardTitle className="text-base font-medium">{t("review.yourReview")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <StarRating value={submitted.rating} />
@@ -41,22 +44,21 @@ export function LeaveReviewCard({ projectId, subjectLabel }: LeaveReviewCardProp
       const review = await create.mutateAsync({ rating, text: text.trim() || null });
       setSubmitted({ rating: review.rating, text: review.text ?? "" });
     } catch (e: unknown) {
-      const status = (e as { status?: number }).status;
-      if (status === 409) {
-        setErr("You've already reviewed this project.");
-      } else {
-        setErr((e as Error).message);
-      }
+      const message = e instanceof ApiError ? e.localized() : (e as Error).message;
+      setErr(message);
     }
   }
+
+  const subjectLabel =
+    subject === "specialist"
+      ? t("projects.labels.subjectSpecialist")
+      : t("projects.labels.subjectCustomer");
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base font-medium">Leave a review</CardTitle>
-        <CardDescription>
-          Rate {subjectLabel} (0–5 stars, half-star steps) and leave an optional note.
-        </CardDescription>
+        <CardTitle className="text-base font-medium">{t("review.title")}</CardTitle>
+        <CardDescription>{t("review.subtitle", { subject: subjectLabel })}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center gap-3">
@@ -68,11 +70,11 @@ export function LeaveReviewCard({ projectId, subjectLabel }: LeaveReviewCardProp
           maxLength={4000}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="What stood out?"
+          placeholder={t("review.placeholder")}
         />
         {err && <p className="text-sm text-destructive">{err}</p>}
         <Button onClick={onSubmit} disabled={create.isPending} className="h-11">
-          {create.isPending ? "Submitting…" : "Submit review"}
+          {create.isPending ? t("review.submitting") : t("review.submit")}
         </Button>
       </CardContent>
     </Card>

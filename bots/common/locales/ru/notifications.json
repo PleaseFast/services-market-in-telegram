@@ -1,0 +1,16 @@
+{
+  "notifications": {
+    "fallback_title": "вашему проекту",
+    "fallback": "🔔 {type}",
+    "application_accepted": "🎉 Вас выбрали для проекта: <b>{title}</b>",
+    "application_rejected": "❌ Заказчик выбрал другого специалиста для <b>{title}</b>",
+    "project_completed": "✅ Проект завершён: <b>{title}</b>. Оставьте отзыв, когда будет время.",
+    "direct_offer_received": "📨 Получено персональное предложение по <b>{title}</b>",
+    "new_review_specialist": "⭐ Новый отзыв (рейтинг {rating})",
+    "new_application": "📨 Новый отклик на <b>{title}</b>",
+    "specialist_selected": "✅ Вы выбрали специалиста для <b>{title}</b>",
+    "direct_offer_answered_accepted": "🔔 Ваше предложение принято ✅",
+    "direct_offer_answered_declined": "🔔 Ваше предложение отклонено ❌",
+    "new_review_customer": "⭐ Новый отзыв на вас (рейтинг {rating})"
+  }
+}

@@ -1,7 +1,9 @@
 from decimal import Decimal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
+
+from app.services.errors import NotFoundError
 
 from app.core.deps import CurrentUser, SessionDep
 from app.models.profile import SpecialistProfile
@@ -93,7 +95,7 @@ async def list_specialists(
 async def get_my_profile(user: CurrentUser, session: SessionDep) -> SpecialistProfileOut:
     p = await get_profile_by_user(session, user.id)
     if p is None:
-        raise HTTPException(404, "Profile not found")
+        raise NotFoundError("profiles.specialist_not_found", message="Profile not found")
     services = await list_for_profile(session, p.id)
     return _hydrate(p, services)
 
@@ -111,6 +113,6 @@ async def put_my_profile(
 async def get_profile(user_id: UUID, session: SessionDep) -> SpecialistProfileOut:
     p = await get_profile_by_user(session, user_id)
     if p is None:
-        raise HTTPException(404, "Profile not found")
+        raise NotFoundError("profiles.specialist_not_found", message="Profile not found")
     services = await list_for_profile(session, p.id)
     return _hydrate(p, services)

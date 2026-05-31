@@ -1,6 +1,8 @@
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
+
+from app.services.errors import NotFoundError
 from sqlalchemy import select
 
 from app.core.deps import CurrentUser, SessionDep
@@ -16,7 +18,7 @@ router = APIRouter(prefix="/customers", tags=["customers"])
 @router.get("/me", response_model=CustomerProfileOut)
 async def get_my_profile(user: CurrentUser) -> CustomerProfileOut:
     if user.customer_profile is None:
-        raise HTTPException(404, "Profile not found")
+        raise NotFoundError("profiles.customer_not_found", message="Profile not found")
     return CustomerProfileOut.model_validate(user.customer_profile)
 
 
@@ -33,7 +35,7 @@ async def get_profile(user_id: UUID, session: SessionDep) -> CustomerProfileOut:
     res = await session.execute(select(CustomerProfile).where(CustomerProfile.user_id == user_id))
     p = res.scalar_one_or_none()
     if p is None:
-        raise HTTPException(404, "Profile not found")
+        raise NotFoundError("profiles.customer_not_found", message="Profile not found")
     return CustomerProfileOut.model_validate(p)
 
 

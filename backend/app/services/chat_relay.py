@@ -17,11 +17,11 @@ async def get_or_open_thread(
 ) -> ChatThread:
     project = await get_project(session, project_id)
     if project is None:
-        raise NotFoundError("Project not found")
+        raise NotFoundError("projects.not_found", message="Project not found")
     if project.customer_id != customer_id:
-        raise ForbiddenError("Customer mismatch")
+        raise ForbiddenError("chat.customer_mismatch", message="Customer mismatch")
     if project.status not in (ProjectStatus.OPEN, ProjectStatus.IN_PROGRESS):
-        raise ConflictError("Project closed to chat")
+        raise ConflictError("chat.project_closed", message="Project closed to chat")
 
     thread = await find_thread(session, project_id, customer_id, specialist_id)
     if thread is None:
@@ -44,9 +44,9 @@ async def post_message(
     """Persist a message in a thread; returns (message, thread, sender_party, counterparty_user_id)."""
     thread = await get_thread(session, thread_id)
     if thread is None:
-        raise NotFoundError("Thread not found")
+        raise NotFoundError("chat.thread_not_found", message="Thread not found")
     if thread.closed:
-        raise ConflictError("Thread is closed")
+        raise ConflictError("chat.thread_closed", message="Thread is closed")
 
     if sender_user.id == thread.customer_id:
         party = ChatParty.CUSTOMER
@@ -55,7 +55,7 @@ async def post_message(
         party = ChatParty.SPECIALIST
         counterparty = thread.customer_id
     else:
-        raise ForbiddenError("Not a member of this thread")
+        raise ForbiddenError("chat.not_member", message="Not a member of this thread")
 
     msg = Message(thread_id=thread.id, sender_party=party, body=body, tg_message_id=tg_message_id)
     session.add(msg)

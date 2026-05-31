@@ -18,12 +18,14 @@ async def apply(
     session: AsyncSession, user: User, project_id: UUID, cover_letter: str | None
 ) -> Application:
     if user.role != UserRole.SPECIALIST:
-        raise ForbiddenError("Only specialists can apply")
+        raise ForbiddenError("applications.specialist_only", message="Only specialists can apply")
     project = await get_project(session, project_id)
     if project is None or project.deleted_at is not None:
-        raise NotFoundError("Project not found")
+        raise NotFoundError("projects.not_found", message="Project not found")
     if project.status != ProjectStatus.OPEN:
-        raise ConflictError("Project not open for applications")
+        raise ConflictError(
+            "applications.project_not_open", message="Project not open for applications"
+        )
     application = Application(
         project_id=project_id,
         specialist_id=user.id,
@@ -34,7 +36,9 @@ async def apply(
         await session.flush()
     except IntegrityError as e:
         await session.rollback()
-        raise ConflictError("Already applied to this project") from e
+        raise ConflictError(
+            "applications.already_applied", message="Already applied to this project"
+        ) from e
 
     await notify(
         session,
@@ -53,11 +57,13 @@ async def apply(
 async def withdraw(session: AsyncSession, user: User, application_id: UUID) -> Application:
     app_row = await session.get(Application, application_id)
     if app_row is None:
-        raise NotFoundError("Application not found")
+        raise NotFoundError("applications.not_found", message="Application not found")
     if app_row.specialist_id != user.id:
-        raise ForbiddenError("Not your application")
+        raise ForbiddenError("applications.not_yours", message="Not your application")
     if app_row.status != ApplicationStatus.PENDING:
-        raise ConflictError("Application is not pending")
+        raise ConflictError(
+            "applications.not_pending", message="Application is not pending"
+        )
     app_row.status = ApplicationStatus.WITHDRAWN
     await session.commit()
     return app_row
@@ -66,9 +72,9 @@ async def withdraw(session: AsyncSession, user: User, application_id: UUID) -> A
 async def list_for_project(session: AsyncSession, user: User, project_id: UUID) -> list[Application]:
     project = await get_project(session, project_id)
     if project is None:
-        raise NotFoundError("Project not found")
+        raise NotFoundError("projects.not_found", message="Project not found")
     if project.customer_id != user.id:
-        raise ForbiddenError("Not your project")
+        raise ForbiddenError("projects.not_yours", message="Not your project")
     res = await session.execute(
         select(Application).where(Application.project_id == project_id).order_by(Application.created_at)
     )
@@ -82,16 +88,16 @@ async def create_offer(
 ) -> DirectOffer:
     project = await get_project(session, project_id)
     if project is None:
-        raise NotFoundError("Project not found")
+        raise NotFoundError("projects.not_found", message="Project not found")
     if project.customer_id != user.id:
-        raise ForbiddenError("Not your project")
+        raise ForbiddenError("projects.not_yours", message="Not your project")
     offer = DirectOffer(project_id=project_id, specialist_id=specialist_id, message=message)
     session.add(offer)
     try:
         await session.flush()
     except IntegrityError as e:
         await session.rollback()
-        raise ConflictError("Offer already exists") from e
+        raise ConflictError("offers.duplicate", message="Offer already exists") from e
 
     await notify(
         session,
@@ -108,16 +114,16 @@ async def respond_to_offer(
 ) -> DirectOffer:
     offer = await session.get(DirectOffer, offer_id)
     if offer is None:
-        raise NotFoundError("Offer not found")
+        raise NotFoundError("offers.not_found", message="Offer not found")
     if offer.specialist_id != user.id:
-        raise ForbiddenError("Not your offer")
+        raise ForbiddenError("offers.not_yours", message="Not your offer")
     if offer.status != ApplicationStatus.PENDING:
-        raise ConflictError("Offer already answered")
+        raise ConflictError("offers.already_answered", message="Offer already answered")
     offer.status = ApplicationStatus.ACCEPTED if accept else ApplicationStatus.REJECTED
 
     project = await get_project(session, offer.project_id)
     if project is None:
-        raise NotFoundError("Project gone")
+        raise NotFoundError("projects.not_found", message="Project gone")
 
     if accept and project.status == ProjectStatus.OPEN:
         # auto-create an accepted application + select specialist

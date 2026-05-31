@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,13 +9,6 @@ import {
 } from "@/features/specialist/api";
 import type { TimelineItem, TimelineKind } from "@/features/projects/types";
 import { TimelineItemForm } from "./TimelineItemForm";
-
-function formatYears(item: TimelineItem): string {
-  if (item.is_current) return `${item.start_year} – present`;
-  if (item.end_year === null) return `${item.start_year}`;
-  if (item.start_year === item.end_year) return `${item.start_year}`;
-  return `${item.start_year} – ${item.end_year}`;
-}
 
 export function TimelineItemCard({
   item,
@@ -29,9 +23,17 @@ export function TimelineItemCard({
   isFirst: boolean;
   isLast: boolean;
 }) {
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const del = useDeleteTimelineItem();
   const move = useMoveTimelineItem();
+
+  function formatYears(it: TimelineItem): string {
+    if (it.is_current) return t("specialist.timeline.yearsRangePresent", { start: it.start_year });
+    if (it.end_year === null) return `${it.start_year}`;
+    if (it.start_year === it.end_year) return `${it.start_year}`;
+    return `${it.start_year} – ${it.end_year}`;
+  }
 
   if (editing) {
     return (
@@ -60,7 +62,7 @@ export function TimelineItemCard({
               size="icon"
               onClick={() => move.mutate({ id: item.id, direction: "up" })}
               disabled={isFirst || move.isPending}
-              aria-label="Move up"
+              aria-label={t("specialist.timeline.moveUp")}
               className="h-9 w-9"
             >
               <ArrowUp className="h-4 w-4" />
@@ -71,7 +73,7 @@ export function TimelineItemCard({
               size="icon"
               onClick={() => move.mutate({ id: item.id, direction: "down" })}
               disabled={isLast || move.isPending}
-              aria-label="Move down"
+              aria-label={t("specialist.timeline.moveDown")}
               className="h-9 w-9"
             >
               <ArrowDown className="h-4 w-4" />
@@ -81,7 +83,7 @@ export function TimelineItemCard({
               variant="ghost"
               size="icon"
               onClick={() => setEditing(true)}
-              aria-label="Edit"
+              aria-label={t("specialist.timeline.edit")}
               className="h-9 w-9"
             >
               <Pencil className="h-4 w-4" />
@@ -91,10 +93,10 @@ export function TimelineItemCard({
               variant="ghost"
               size="icon"
               onClick={() => {
-                if (confirm("Delete this entry?")) del.mutate(item.id);
+                if (confirm(t("specialist.timeline.confirmDelete"))) del.mutate(item.id);
               }}
               disabled={del.isPending}
-              aria-label="Delete"
+              aria-label={t("specialist.timeline.delete")}
               className="h-9 w-9"
             >
               <Trash2 className="h-4 w-4" />

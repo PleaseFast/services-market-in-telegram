@@ -1,12 +1,13 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from sqlalchemy import select
 
 from app.core.deps import CurrentUser, SessionDep
 from app.models.notification import Notification
 from app.schemas.notification import NotificationOut
+from app.services.errors import NotFoundError
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
@@ -28,7 +29,7 @@ async def mark_read(
 ) -> NotificationOut:
     n = await session.get(Notification, notification_id)
     if n is None or n.user_id != user.id:
-        raise HTTPException(404, "Not found")
+        raise NotFoundError("notifications.not_found", message="Not found")
     if n.read_at is None:
         n.read_at = datetime.now(UTC)
         await session.commit()

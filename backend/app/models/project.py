@@ -5,7 +5,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, Index, Numeric, String, Text, Uuid
+from sqlalchemy import Date, DateTime, Enum, ForeignKey, Index, Numeric, String, Text, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, SoftDelete, Timestamps, UUIDPK
@@ -27,6 +27,30 @@ class ProjectTemplate(UUIDPK, Timestamps, Base):
     title: Mapped[str] = mapped_column(String(160), nullable=False)
     category: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     description_template: Mapped[str] = mapped_column(Text, nullable=False, default="")
+
+    translations: Mapped[list["ProjectTemplateTranslation"]] = relationship(
+        back_populates="template",
+        cascade="all, delete-orphan",
+    )
+
+
+class ProjectTemplateTranslation(UUIDPK, Timestamps, Base):
+    __tablename__ = "project_template_translations"
+    __table_args__ = (
+        UniqueConstraint("template_id", "locale", name="uq_template_locale"),
+    )
+
+    template_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("project_templates.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    locale: Mapped[str] = mapped_column(String(5), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+
+    template: Mapped[ProjectTemplate] = relationship(back_populates="translations")
 
 
 class Project(UUIDPK, Timestamps, SoftDelete, Base):

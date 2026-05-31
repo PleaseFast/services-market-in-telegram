@@ -1,0 +1,9 @@
+{
+  "doers": {
+    "welcome": "👋 Welcome to <b>Doings</b> — your specialist assistant.\n\nUse the Mini App for the full experience, or browse from here.",
+    "menu": {
+      "my_projects": "📋 My active projects",
+      "my_rating": "⭐ My rating"
+    }
+  }
+}

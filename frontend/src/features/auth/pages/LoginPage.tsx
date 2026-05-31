@@ -1,7 +1,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
-import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,13 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { login } from "../api";
 import { useAuthStore } from "@/stores/auth";
+import { ApiError } from "@/lib/api";
 
-const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-});
-
-type FormValues = z.infer<typeof schema>;
+type FormValues = { email: string; password: string };
 
 function safeNext(raw: string | null): string | null {
   if (!raw) return null;
@@ -24,15 +21,23 @@ function safeNext(raw: string | null): string | null {
 }
 
 export function LoginPage() {
+  const { t } = useTranslation();
   const nav = useNavigate();
   const [params] = useSearchParams();
   const next = safeNext(params.get("next"));
-  // The guest path surfaces only when the visitor is in the specialist auth
-  // flow — they arrived here from "For specialists" (or the register page's
-  // sign-in link, which preserves the role param).
   const showGuestOption = params.get("role") === "specialist";
   const enterGuest = useAuthStore((s) => s.enterGuest);
   const [err, setErr] = useState<string | null>(null);
+
+  const schema = useMemo(
+    () =>
+      z.object({
+        email: z.string().email(t("validation.email")),
+        password: z.string().min(8, t("validation.passwordMin", { count: 8 })),
+      }),
+    [t],
+  );
+
   const {
     register,
     handleSubmit,
@@ -54,7 +59,8 @@ export function LoginPage() {
       }
       nav(me.role === "customer" ? "/c" : "/s");
     } catch (e: unknown) {
-      setErr((e as Error).message);
+      const message = e instanceof ApiError ? e.localized() : (e as Error).message;
+      setErr(message);
     }
   }
 
@@ -64,36 +70,34 @@ export function LoginPage() {
     <div className="max-w-md mx-auto pt-12">
       <Card className="border-0 shadow-none md:border md:shadow-sm">
         <CardHeader>
-          <CardTitle className="text-2xl">Sign in</CardTitle>
+          <CardTitle className="text-2xl">{t("auth.login.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("auth.login.emailLabel")}</Label>
               <Input id="email" type="email" {...register("email")} />
               {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("auth.login.passwordLabel")}</Label>
               <Input id="password" type="password" {...register("password")} />
               {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
             </div>
             {err && <p className="text-sm text-destructive">{err}</p>}
             <Button type="submit" disabled={isSubmitting} className="w-full">
-              {isSubmitting ? "Signing in…" : "Sign in"}
+              {isSubmitting ? t("auth.login.submitting") : t("auth.login.submit")}
             </Button>
             <p className="text-sm text-muted-foreground text-center">
-              No account?{" "}
+              {t("auth.login.noAccount")}{" "}
               <Link to={signUpHref} className="text-foreground underline-offset-4 hover:underline">
-                Create one
+                {t("auth.login.createOne")}
               </Link>
             </p>
           </form>
           {showGuestOption && (
             <div className="mt-6 pt-5 border-t text-center space-y-1">
-              <p className="text-sm text-muted-foreground">
-                Not ready to sign in?
-              </p>
+              <p className="text-sm text-muted-foreground">{t("auth.login.notReady")}</p>
               <button
                 type="button"
                 onClick={() => {
@@ -102,7 +106,7 @@ export function LoginPage() {
                 }}
                 className="text-sm font-medium text-foreground underline underline-offset-4 hover:opacity-80"
               >
-                Browse projects as a guest
+                {t("auth.login.browseAsGuest")}
               </button>
             </div>
           )}

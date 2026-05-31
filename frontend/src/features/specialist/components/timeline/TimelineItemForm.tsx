@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -13,41 +14,19 @@ import {
   type TimelineItemInput,
 } from "@/features/specialist/api";
 import type { TimelineItem, TimelineKind } from "@/features/projects/types";
+import { ApiError } from "@/lib/api";
 
 const currentYear = new Date().getFullYear();
 const YEAR_FLOOR = 1950;
 const YEAR_CEIL = currentYear + 1;
 
-const schema = z
-  .object({
-    title: z.string().min(2, "At least 2 characters").max(200),
-    description: z.string().max(4000).default(""),
-    start_year: z.coerce.number().int().min(YEAR_FLOOR).max(YEAR_CEIL),
-    end_year: z.union([z.coerce.number().int().min(YEAR_FLOOR).max(YEAR_CEIL), z.literal("")]),
-    is_current: z.boolean().default(false),
-  })
-  .superRefine((v, ctx) => {
-    if (!v.is_current && v.end_year === "") {
-      ctx.addIssue({
-        path: ["end_year"],
-        code: z.ZodIssueCode.custom,
-        message: "End year is required",
-      });
-    }
-    if (
-      !v.is_current &&
-      typeof v.end_year === "number" &&
-      v.end_year < v.start_year
-    ) {
-      ctx.addIssue({
-        path: ["end_year"],
-        code: z.ZodIssueCode.custom,
-        message: "End year must be after start year",
-      });
-    }
-  });
-
-type FormValues = z.infer<typeof schema>;
+type FormValues = {
+  title: string;
+  description: string;
+  start_year: number;
+  end_year: number | "";
+  is_current: boolean;
+};
 
 interface TimelineItemFormProps {
   kind: TimelineKind;
@@ -64,9 +43,43 @@ export function TimelineItemForm({
   onSaved,
   onCancel,
 }: TimelineItemFormProps) {
+  const { t } = useTranslation();
   const create = useCreateTimelineItem();
   const patch = usePatchTimelineItem();
   const [err, setErr] = useState<string | null>(null);
+
+  const schema = useMemo(
+    () =>
+      z
+        .object({
+          title: z.string().min(2, t("specialist.timeline.validation.min", { count: 2 })).max(200),
+          description: z.string().max(4000).default(""),
+          start_year: z.coerce.number().int().min(YEAR_FLOOR).max(YEAR_CEIL),
+          end_year: z.union([z.coerce.number().int().min(YEAR_FLOOR).max(YEAR_CEIL), z.literal("")]),
+          is_current: z.boolean().default(false),
+        })
+        .superRefine((v, ctx) => {
+          if (!v.is_current && v.end_year === "") {
+            ctx.addIssue({
+              path: ["end_year"],
+              code: z.ZodIssueCode.custom,
+              message: t("specialist.timeline.validation.endRequired"),
+            });
+          }
+          if (
+            !v.is_current &&
+            typeof v.end_year === "number" &&
+            v.end_year < v.start_year
+          ) {
+            ctx.addIssue({
+              path: ["end_year"],
+              code: z.ZodIssueCode.custom,
+              message: t("specialist.timeline.validation.endBeforeStart"),
+            });
+          }
+        }),
+    [t],
+  );
 
   const {
     register,
@@ -88,8 +101,6 @@ export function TimelineItemForm({
 
   const isCurrent = watch("is_current");
 
-  // When the toggle switches on, clear end_year. When it switches off, default
-  // back to the current year so the user sees a valid value.
   useEffect(() => {
     if (isCurrent) setValue("end_year", "");
     else if (watch("end_year") === "") setValue("end_year", currentYear);
@@ -114,19 +125,19 @@ export function TimelineItemForm({
       }
       onSaved();
     } catch (e: unknown) {
-      setErr((e as Error).message);
+      setErr(e instanceof ApiError ? e.localized() : (e as Error).message);
     }
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 rounded-lg border p-4">
       <div className="space-y-1">
-        <Label htmlFor={`title-${existing?.id ?? "new"}`}>Title</Label>
+        <Label htmlFor={`title-${existing?.id ?? "new"}`}>{t("specialist.timeline.title")}</Label>
         <Input id={`title-${existing?.id ?? "new"}`} {...register("title")} />
         {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
       </div>
       <div className="space-y-1">
-        <Label htmlFor={`description-${existing?.id ?? "new"}`}>Description</Label>
+        <Label htmlFor={`description-${existing?.id ?? "new"}`}>{t("specialist.timeline.description")}</Label>
         <Textarea
           id={`description-${existing?.id ?? "new"}`}
           rows={3}
@@ -135,7 +146,7 @@ export function TimelineItemForm({
       </div>
       <div className="grid grid-cols-2 gap-2 min-w-0">
         <div className="space-y-1">
-          <Label htmlFor={`start-${existing?.id ?? "new"}`}>Start year</Label>
+          <Label htmlFor={`start-${existing?.id ?? "new"}`}>{t("specialist.timeline.startYear")}</Label>
           <Input
             id={`start-${existing?.id ?? "new"}`}
             type="number"
@@ -149,7 +160,7 @@ export function TimelineItemForm({
           )}
         </div>
         <div className="space-y-1">
-          <Label htmlFor={`end-${existing?.id ?? "new"}`}>End year</Label>
+          <Label htmlFor={`end-${existing?.id ?? "new"}`}>{t("specialist.timeline.endYear")}</Label>
           <Input
             id={`end-${existing?.id ?? "new"}`}
             type="number"
@@ -183,11 +194,15 @@ export function TimelineItemForm({
       {err && <p className="text-sm text-destructive">{err}</p>}
       <div className="flex gap-2 pt-1">
         <Button type="submit" disabled={isSubmitting} className="h-11">
-          {isSubmitting ? "Saving…" : existing ? "Save changes" : "Add"}
+          {isSubmitting
+            ? t("specialist.timeline.saving")
+            : existing
+              ? t("specialist.timeline.saveChanges")
+              : t("specialist.timeline.add")}
         </Button>
         {onCancel && (
           <Button type="button" variant="ghost" onClick={onCancel} className="h-11">
-            Cancel
+            {t("specialist.timeline.cancel")}
           </Button>
         )}
       </div>

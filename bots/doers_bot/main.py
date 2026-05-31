@@ -6,7 +6,7 @@ import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher, F
-from aiogram.filters import CommandStart
+from aiogram.filters import Command, CommandStart
 from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -15,9 +15,13 @@ from aiogram.types import (
 )
 
 from app.core.config import get_settings
+from app.core.i18n import DEFAULT as DEFAULT_LANG
 from app.models.user import UserRole
-from bots.common.auth import update_chat_id
+from bots.common.auth import get_user_by_tg, update_chat_id
 from bots.common.db import SessionLocal
+from bots.common.i18n import t
+from bots.common.lang import ensure_user_language
+from bots.common.lang_command import handle_lang_command
 from bots.common.lookup import chat_id_for_user_id
 from bots.common.notifications import run_notification_loop
 
@@ -25,15 +29,19 @@ settings = get_settings()
 log = logging.getLogger("doers_bot")
 
 
-def main_menu() -> InlineKeyboardMarkup:
+def main_menu(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(
-                text="🚀 Open Doings (Mini App)",
+                text=t("shared.open_app", lang),
                 web_app=WebAppInfo(url=f"{settings.TG_WEBAPP_URL}/?role=specialist"),
             )],
-            [InlineKeyboardButton(text="📋 My active projects", callback_data="my_projects")],
-            [InlineKeyboardButton(text="⭐ My rating", callback_data="my_rating")],
+            [InlineKeyboardButton(
+                text=t("doers.menu.my_projects", lang), callback_data="my_projects"
+            )],
+            [InlineKeyboardButton(
+                text=t("doers.menu.my_rating", lang), callback_data="my_rating"
+            )],
         ]
     )
 
@@ -41,11 +49,12 @@ def main_menu() -> InlineKeyboardMarkup:
 async def on_start(message: Message) -> None:
     async with SessionLocal() as session:
         await update_chat_id(session, message.from_user.id, message.chat.id)
+        user = await get_user_by_tg(session, message.from_user.id)
+        lang = await ensure_user_language(session, user, message.from_user)
     await message.answer(
-        "👋 Welcome to <b>Doings</b> — your specialist assistant.\n\n"
-        "Use the Mini App for the full experience, or browse from here.",
+        t("doers.welcome", lang),
         parse_mode="HTML",
-        reply_markup=main_menu(),
+        reply_markup=main_menu(lang),
     )
 
 
@@ -58,21 +67,21 @@ SPECIALIST_NOTIFICATIONS = {
 }
 
 
-def format_notification(payload: dict) -> str:
-    t = payload.get("type", "")
+def format_notification(payload: dict, lang: str = DEFAULT_LANG) -> str:
+    notif_type = payload.get("type", "")
     p = payload.get("payload", {})
-    title = p.get("title", "your project")
-    if t == "application_accepted":
-        return f"🎉 You were selected for: <b>{title}</b>"
-    if t == "application_rejected":
-        return f"❌ Customer chose someone else for <b>{title}</b>"
-    if t == "project_completed":
-        return f"✅ Project completed: <b>{title}</b>. Leave a review when you can."
-    if t == "direct_offer_received":
-        return f"📨 Direct offer received for <b>{title}</b>"
-    if t == "new_review":
-        return f"⭐ New review (rating {p.get('rating', '?')})"
-    return f"🔔 {t}"
+    title = p.get("title") or t("notifications.fallback_title", lang)
+    if notif_type == "application_accepted":
+        return t("notifications.application_accepted", lang, title=title)
+    if notif_type == "application_rejected":
+        return t("notifications.application_rejected", lang, title=title)
+    if notif_type == "project_completed":
+        return t("notifications.project_completed", lang, title=title)
+    if notif_type == "direct_offer_received":
+        return t("notifications.direct_offer_received", lang, title=title)
+    if notif_type == "new_review":
+        return t("notifications.new_review_specialist", lang, rating=p.get("rating", "?"))
+    return t("notifications.fallback", lang, type=notif_type)
 
 
 async def main() -> None:
@@ -84,6 +93,7 @@ async def main() -> None:
     dp = Dispatcher()
     dp.message.register(on_start, CommandStart())
     dp.message.register(on_start, F.text == "/menu")
+    dp.message.register(handle_lang_command, Command("lang"))
 
     async def chat_lookup(user_id_str: str) -> int | None:
         return await chat_id_for_user_id(user_id_str, role=UserRole.SPECIALIST)

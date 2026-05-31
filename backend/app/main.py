@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -39,7 +40,38 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(DomainError)
     async def _domain_error(_: Request, exc: DomainError) -> JSONResponse:
-        return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "detail": exc.message,
+                "code": exc.code,
+                "params": exc.params,
+            },
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def _validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
+        # Map Pydantic errors to a stable ``validation.<type>`` code per field so
+        # clients can render localized messages without parsing English text.
+        errors = []
+        for err in exc.errors():
+            errors.append(
+                {
+                    "loc": list(err.get("loc", [])),
+                    "type": err.get("type", "unknown"),
+                    "code": f"validation.{err.get('type', 'unknown')}",
+                    "msg": err.get("msg", ""),
+                    "ctx": {k: _jsonable(v) for k, v in (err.get("ctx") or {}).items()},
+                }
+            )
+        return JSONResponse(
+            status_code=422,
+            content={
+                "detail": "Validation failed",
+                "code": "validation.failed",
+                "errors": errors,
+            },
+        )
 
     @app.get("/health", tags=["meta"])
     async def health() -> dict[str, str]:
@@ -47,6 +79,13 @@ def create_app() -> FastAPI:
 
     app.include_router(api_v1)
     return app
+
+
+def _jsonable(value: object) -> object:
+    """Best-effort JSON-serialisable conversion for validation ctx values."""
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return str(value)
 
 
 app = create_app()

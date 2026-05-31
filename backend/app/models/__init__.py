@@ -8,7 +8,12 @@ from app.models.profile import (
     SpecialistProfileCategory,
 )
 from app.models.profile_timeline_item import ProfileTimelineItem, TimelineKind
-from app.models.project import Project, ProjectStatus, ProjectTemplate
+from app.models.project import (
+    Project,
+    ProjectStatus,
+    ProjectTemplate,
+    ProjectTemplateTranslation,
+)
 from app.models.project_view import ProjectView
 from app.models.review import Review
 from app.models.service_catalog import ServiceCatalogItem
@@ -30,6 +35,7 @@ __all__ = [
     "Project",
     "ProjectStatus",
     "ProjectTemplate",
+    "ProjectTemplateTranslation",
     "ProjectView",
     "RefreshToken",
     "Review",

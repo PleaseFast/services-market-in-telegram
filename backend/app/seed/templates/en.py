@@ -5,7 +5,7 @@ levels. The seed loader dedupes by ``title``, so adding new entries here and
 re-running ``make seed`` will safely insert only the new ones.
 """
 
-PROJECT_TEMPLATES: list[dict[str, str]] = [
+PROJECT_TEMPLATES_EN: list[dict[str, str]] = [
     # ---------------- Frontend ----------------
     {
         "title": "Landing page for SaaS product",

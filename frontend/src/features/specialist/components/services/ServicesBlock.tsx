@@ -1,18 +1,17 @@
+import { useTranslation } from "react-i18next";
+import { categoryLabel } from "@/lib/categories";
 import type { SpecialistService } from "@/features/projects/types";
 
 interface ServicesBlockProps {
   services: SpecialistService[];
 }
 
-/** Read-mode view of services grouped by category > subcategory with prices. */
 export function ServicesBlock({ services }: ServicesBlockProps) {
+  const { t } = useTranslation();
   if (!services || services.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground italic">No services listed yet.</p>
-    );
+    return <p className="text-sm text-muted-foreground italic">{t("specialist.services.empty")}</p>;
   }
 
-  // Group by category > subcategory preserving the order returned by the API.
   const grouped: Map<string, Map<string, SpecialistService[]>> = new Map();
   for (const s of services) {
     if (!grouped.has(s.category)) grouped.set(s.category, new Map());
@@ -25,7 +24,7 @@ export function ServicesBlock({ services }: ServicesBlockProps) {
     <div className="space-y-6">
       {Array.from(grouped.entries()).map(([category, subs]) => (
         <div key={category} className="space-y-3">
-          <h4 className="text-sm font-semibold">{category}</h4>
+          <h4 className="text-sm font-semibold">{categoryLabel(category)}</h4>
           {Array.from(subs.entries()).map(([subcategory, items]) => (
             <div key={subcategory} className="space-y-1">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">

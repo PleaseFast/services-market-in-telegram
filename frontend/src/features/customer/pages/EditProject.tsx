@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,25 +11,39 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { useProject, useUpdateProject } from "@/features/projects/api";
-import { CATEGORIES, clampCategory } from "@/lib/categories";
+import { CATEGORIES, categoryLabel, clampCategory } from "@/lib/categories";
+import { projectStatusLabel } from "@/lib/projectStatus";
+import { ApiError } from "@/lib/api";
 
-const schema = z.object({
-  title: z.string().min(4, "At least 4 characters"),
-  description: z.string().min(10, "At least 10 characters"),
-  budget: z.coerce.number().min(0),
-  currency: z.string().length(3),
-  deadline: z.string().optional().or(z.literal("")),
-  category: z.enum(CATEGORIES),
-});
-
-type FormValues = z.infer<typeof schema>;
+type FormValues = {
+  title: string;
+  description: string;
+  budget: number;
+  currency: string;
+  deadline?: string;
+  category: (typeof CATEGORIES)[number];
+};
 
 export function EditProject() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
   const { data: project, isLoading } = useProject(id);
   const update = useUpdateProject(id);
   const [err, setErr] = useState<string | null>(null);
+
+  const schema = useMemo(
+    () =>
+      z.object({
+        title: z.string().min(4, t("validation.title.min", { count: 4 })),
+        description: z.string().min(10, t("validation.description.min", { count: 10 })),
+        budget: z.coerce.number().min(0),
+        currency: z.string().length(3),
+        deadline: z.string().optional().or(z.literal("")),
+        category: z.enum(CATEGORIES),
+      }),
+    [t],
+  );
 
   const {
     register,
@@ -53,7 +68,7 @@ export function EditProject() {
   }, [project, reset]);
 
   if (isLoading || !project) {
-    return <p className="text-muted-foreground text-sm">Loading…</p>;
+    return <p className="text-muted-foreground text-sm">{t("common.states.loading")}</p>;
   }
 
   const editable = ["draft", "open", "paused"].includes(project.status);
@@ -61,7 +76,7 @@ export function EditProject() {
     return (
       <div className="max-w-3xl mx-auto">
         <p className="text-sm text-muted-foreground">
-          This project can no longer be edited (status: {project.status}).
+          {t("customer.edit.notEditable", { status: projectStatusLabel(project.status) })}
         </p>
       </div>
     );
@@ -80,7 +95,7 @@ export function EditProject() {
       });
       nav(`/c/projects/${id}`);
     } catch (e: unknown) {
-      setErr((e as Error).message);
+      setErr(e instanceof ApiError ? e.localized() : (e as Error).message);
     }
   }
 
@@ -88,21 +103,21 @@ export function EditProject() {
     <div className="max-w-3xl mx-auto space-y-8">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-medium">Edit project</CardTitle>
+          <CardTitle className="text-base font-medium">{t("customer.edit.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
             <div className="space-y-1.5">
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="title">{t("customer.edit.titleField")}</Label>
               <Input id="title" {...register("title")} />
               {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="category">{t("customer.edit.category")}</Label>
               <Select id="category" {...register("category")}>
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {categoryLabel(c)}
                   </option>
                 ))}
               </Select>
@@ -111,7 +126,7 @@ export function EditProject() {
               )}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="description">Details</Label>
+              <Label htmlFor="description">{t("customer.edit.details")}</Label>
               <Textarea id="description" rows={8} {...register("description")} />
               {errors.description && (
                 <p className="text-xs text-destructive">{errors.description.message}</p>
@@ -119,15 +134,15 @@ export function EditProject() {
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="budget">Budget</Label>
+                <Label htmlFor="budget">{t("customer.edit.budget")}</Label>
                 <Input id="budget" type="number" {...register("budget")} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="currency">Currency</Label>
+                <Label htmlFor="currency">{t("customer.edit.currency")}</Label>
                 <Input id="currency" maxLength={3} {...register("currency")} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="deadline">Deadline</Label>
+                <Label htmlFor="deadline">{t("customer.edit.deadline")}</Label>
                 <Input id="deadline" type="date" {...register("deadline")} />
               </div>
             </div>
@@ -139,10 +154,10 @@ export function EditProject() {
                 onClick={() => nav(`/c/projects/${id}`)}
                 disabled={isSubmitting}
               >
-                Cancel
+                {t("customer.edit.cancel")}
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                Save changes
+                {t("customer.edit.save")}
               </Button>
             </div>
           </form>

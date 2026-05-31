@@ -1,0 +1,9 @@
+{
+  "customers": {
+    "welcome": "👋 Welcome to <b>Doings</b> — your customer assistant.\n\nOpen the Mini App to post projects and manage applicants.",
+    "menu": {
+      "my_projects": "📋 My active projects",
+      "drafts": "📝 Drafts"
+    }
+  }
+}

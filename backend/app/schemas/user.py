@@ -14,5 +14,14 @@ class UserOut(ORMBase):
     email: EmailStr | None
     role: UserRole
     is_active: bool
+    language: str = "ru"
     created_at: datetime
     profile_complete: bool = True
+
+
+class LanguageOut(ORMBase):
+    language: str
+
+
+class LanguageIn(ORMBase):
+    language: str

@@ -7,6 +7,9 @@ declare global {
         expand: () => void;
         themeParams?: { bg_color?: string };
         colorScheme?: "light" | "dark";
+        initDataUnsafe?: {
+          user?: { language_code?: string };
+        };
       };
     };
   }

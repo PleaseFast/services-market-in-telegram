@@ -1,5 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,8 +13,11 @@ import { CustomerInfoBlock } from "@/features/projects/components/CustomerInfoBl
 import { LeaveReviewCard } from "@/features/projects/components/LeaveReviewCard";
 import { useUserReviews } from "@/features/specialist/api";
 import { StarRating } from "@/features/specialist/components/reviews/StarRating";
+import { projectStatusLabel } from "@/lib/projectStatus";
+import { ApiError } from "@/lib/api";
 
 export function ProjectDetailSpecialist() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { data: project, isLoading } = useProject(id);
   const apply = useApply();
@@ -27,8 +31,6 @@ export function ProjectDetailSpecialist() {
   const isSelectedSpecialist =
     !!project && !isGuest && !!me && me.id === project.selected_specialist_id;
 
-  // Look up an existing review by this specialist on the customer so we can
-  // show the user their own review instead of an empty form when they return.
   const { data: customerReviews } = useUserReviews(
     reviewed && isSelectedSpecialist ? project?.customer_id : undefined,
   );
@@ -40,8 +42,8 @@ export function ProjectDetailSpecialist() {
     [customerReviews, project?.id, me?.id],
   );
 
-  if (isLoading) return <p className="text-muted-foreground text-sm">Loading…</p>;
-  if (!project) return <p>Project not found.</p>;
+  if (isLoading) return <p className="text-muted-foreground text-sm">{t("common.states.loading")}</p>;
+  if (!project) return <p>{t("specialist.detail.notFound")}</p>;
 
   const publishedDisplay = formatDate(project.published_at ?? project.created_at);
   const higher = project.higher_rated_applicants ?? 0;
@@ -56,21 +58,23 @@ export function ProjectDetailSpecialist() {
                 {project.title}
               </CardTitle>
               <CardDescription>
-                Budget: {project.budget} {project.currency} · Deadline: {formatDate(project.deadline)}
+                {t("projects.labels.budgetDeadline", {
+                  budget: project.budget,
+                  currency: project.currency,
+                  deadline: formatDate(project.deadline),
+                })}
               </CardDescription>
               <p className="text-xs text-muted-foreground mt-1">
-                Published: {publishedDisplay}
+                {t("specialist.detail.publishedPrefix", { date: publishedDisplay })}
               </p>
             </div>
-            <Badge tone="outline">{project.status}</Badge>
+            <Badge tone="outline">{projectStatusLabel(project.status)}</Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
           {higher > 0 && (
             <p className="text-xs rounded-md border border-amber-500/40 bg-amber-50 text-amber-800 px-3 py-2">
-              {higher === 1
-                ? "1 applicant has a higher rating than you"
-                : `${higher} applicants have a higher rating than you`}
+              {t("specialist.detail.higherRated", { count: higher })}
             </p>
           )}
           <p className="whitespace-pre-wrap text-sm leading-relaxed">{project.description}</p>
@@ -79,22 +83,20 @@ export function ProjectDetailSpecialist() {
 
       <CustomerInfoBlock customerId={project.customer_id} currentProjectId={project.id} />
 
-      {isGuest && project.status === "open" && (
-        <GuestPrompt action="apply to this project" />
-      )}
+      {isGuest && project.status === "open" && <GuestPrompt actionKey="apply" />}
 
       {!isGuest && project.status === "open" && !done && (
         <Card>
           <CardHeader>
-            <CardTitle>Apply</CardTitle>
-            <CardDescription>Add a short cover letter (optional).</CardDescription>
+            <CardTitle>{t("specialist.detail.applyTitle")}</CardTitle>
+            <CardDescription>{t("specialist.detail.applyHint")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <Textarea
               rows={5}
               value={cover}
               onChange={(e) => setCover(e.target.value)}
-              placeholder="Hi! Here's why I'm a good fit…"
+              placeholder={t("specialist.detail.coverLetterPlaceholder")}
             />
             {err && <p className="text-sm text-destructive">{err}</p>}
             <Button
@@ -105,11 +107,13 @@ export function ProjectDetailSpecialist() {
                   await apply.mutateAsync({ projectId: project.id, coverLetter: cover || undefined });
                   setDone(true);
                 } catch (e: unknown) {
-                  setErr((e as Error).message);
+                  const message =
+                    e instanceof ApiError ? e.localized() : (e as Error).message;
+                  setErr(message);
                 }
               }}
             >
-              {apply.isPending ? "Sending…" : "Send application"}
+              {apply.isPending ? t("specialist.detail.submitting") : t("specialist.detail.submit")}
             </Button>
           </CardContent>
         </Card>
@@ -117,19 +121,17 @@ export function ProjectDetailSpecialist() {
 
       {done && (
         <Card>
-          <CardContent className="pt-6">
-            ✅ Application sent. Customer will be notified.
-          </CardContent>
+          <CardContent className="pt-6">{t("specialist.detail.applicationSent")}</CardContent>
         </Card>
       )}
 
       {reviewed && isSelectedSpecialist && !myReview && (
-        <LeaveReviewCard projectId={project.id} subjectLabel="the customer" />
+        <LeaveReviewCard projectId={project.id} subject="customer" />
       )}
       {reviewed && isSelectedSpecialist && myReview && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-medium">Your review</CardTitle>
+            <CardTitle className="text-base font-medium">{t("review.yourReview")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <StarRating value={myReview.rating} />

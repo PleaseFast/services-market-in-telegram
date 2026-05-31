@@ -1,0 +1,33 @@
+{
+  "referee": {
+    "welcome_unknown": "👋 Welcome to <b>RefereeBot</b>!\n\nI relay anonymous chats between customers and specialists.\n\nFirst, sign up on the web app, then link your Telegram account from the Mini App.",
+    "welcome_customer": "👋 Welcome back. Pick a project to talk to applicants anonymously.",
+    "welcome_specialist": "👋 Welcome back. Use /menu to see active chats with customers.",
+    "menu": {
+      "open_projects": "📋 My open projects",
+      "active_chats": "💬 My active chats",
+      "title_customer": "Customer menu",
+      "title_specialist": "Specialist menu"
+    },
+    "empty": {
+      "open_projects": "No open projects.",
+      "applicants": "No applicants yet.",
+      "active_chats": "No active chats."
+    },
+    "lists": {
+      "open_projects": "Your open projects:",
+      "applicants": "Anonymous applicants for this project:",
+      "pick_chat": "Pick a chat to enter:"
+    },
+    "chat": {
+      "row_chat": "💬 Chat #{idx}",
+      "row_select": "✅ Select #{idx}",
+      "entered_customer": "💬 You're now in an anonymous chat with this specialist.\nType messages here; they'll be forwarded. Use /leave to exit.",
+      "entered_specialist": "💬 Entered chat. Type messages here; /leave to exit.",
+      "left": "Left the chat.",
+      "selected": "✅ Selected for <b>{title}</b>.",
+      "label_customer": "Customer",
+      "label_specialist": "Specialist"
+    }
+  }
+}

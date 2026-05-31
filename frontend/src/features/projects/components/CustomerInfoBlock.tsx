@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar } from "@/components/avatar/Avatar";
 import { StarRating } from "@/features/specialist/components/reviews/StarRating";
@@ -8,20 +9,11 @@ import { formatDate } from "@/lib/utils";
 
 interface CustomerInfoBlockProps {
   customerId: string;
-  /** Hide this id from the "other open projects" list when present. */
   currentProjectId?: string;
 }
 
-/**
- * Embedded read-only block describing the project's customer. Renders on
- * project detail pages so a viewer (typically a specialist or guest) can
- * gauge the customer's reputation and see their other open work.
- *
- * There is intentionally no link from here to a standalone customer profile
- * page — customers don't have one. Everything a viewer needs sits inside
- * this block.
- */
 export function CustomerInfoBlock({ customerId, currentProjectId }: CustomerInfoBlockProps) {
+  const { t } = useTranslation();
   const { data: customer } = usePublicCustomer(customerId);
   const { data: reviewsPage, isLoading: reviewsLoading } = useUserReviews(customerId);
   const { data: openProjects } = useCustomerOpenProjects(customerId);
@@ -38,7 +30,7 @@ export function CustomerInfoBlock({ customerId, currentProjectId }: CustomerInfo
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base font-medium">About the customer</CardTitle>
+        <CardTitle className="text-base font-medium">{t("customerInfo.title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="flex items-start gap-3">
@@ -49,20 +41,23 @@ export function CustomerInfoBlock({ customerId, currentProjectId }: CustomerInfo
               <StarRating value={ratingAvg} size="sm" />
               <span className="text-xs text-muted-foreground">
                 {ratingCount > 0
-                  ? `${ratingAvg.toFixed(2)} · ${ratingCount} ${ratingCount === 1 ? "review" : "reviews"}`
-                  : "No reviews yet"}
+                  ? t("customerInfo.reviewsCount", {
+                      count: ratingCount,
+                      value: ratingAvg.toFixed(2),
+                    })
+                  : t("customerInfo.noReviews")}
               </span>
             </div>
           </div>
         </div>
 
         <section className="space-y-2">
-          <h4 className="text-sm font-medium">Reviews</h4>
+          <h4 className="text-sm font-medium">{t("customerInfo.reviews")}</h4>
           {reviewsLoading && (
-            <p className="text-sm text-muted-foreground">Loading…</p>
+            <p className="text-sm text-muted-foreground">{t("customerInfo.reviewsLoading")}</p>
           )}
           {!reviewsLoading && reviews.length === 0 && (
-            <p className="text-sm text-muted-foreground italic">No reviews yet.</p>
+            <p className="text-sm text-muted-foreground italic">{t("customerInfo.noReviews")}</p>
           )}
           <ul className="space-y-3">
             {reviews.map((r) => (
@@ -70,7 +65,9 @@ export function CustomerInfoBlock({ customerId, currentProjectId }: CustomerInfo
                 <div className="flex items-start justify-between gap-2 flex-wrap">
                   <div className="flex flex-col">
                     <p className="text-sm font-medium leading-tight">{r.project_title}</p>
-                    <p className="text-xs text-muted-foreground">by {r.author_name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("customerInfo.byAuthor", { author: r.author_name })}
+                    </p>
                   </div>
                   <p className="text-xs text-muted-foreground">{formatDate(r.created_at)}</p>
                 </div>
@@ -84,11 +81,9 @@ export function CustomerInfoBlock({ customerId, currentProjectId }: CustomerInfo
         </section>
 
         <section className="space-y-2">
-          <h4 className="text-sm font-medium">Other open projects from this customer</h4>
+          <h4 className="text-sm font-medium">{t("customerInfo.otherOpen")}</h4>
           {otherOpen.length === 0 && (
-            <p className="text-sm text-muted-foreground italic">
-              No other open projects right now.
-            </p>
+            <p className="text-sm text-muted-foreground italic">{t("customerInfo.noOtherOpen")}</p>
           )}
           <ul className="space-y-2">
             {otherOpen.map((p) => (
@@ -105,7 +100,7 @@ export function CustomerInfoBlock({ customerId, currentProjectId }: CustomerInfo
                   </div>
                   {p.deadline && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Deadline: {formatDate(p.deadline)}
+                      {t("customerInfo.deadlinePrefix", { date: formatDate(p.deadline) })}
                     </p>
                   )}
                 </Link>

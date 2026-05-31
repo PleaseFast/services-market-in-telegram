@@ -48,11 +48,16 @@ async def upsert_specialist_profile(
     session: AsyncSession, user: User, data: SpecialistProfileIn
 ) -> SpecialistProfile:
     if user.role != UserRole.SPECIALIST:
-        raise ForbiddenError("Only specialists can manage a specialist profile")
+        raise ForbiddenError(
+            "profiles.specialist_only",
+            message="Only specialists can manage a specialist profile",
+        )
 
     categories = _normalise_categories(data.categories)
     if not categories:
-        raise ConflictError("At least one category is required")
+        raise ConflictError(
+            "profiles.category_required", message="At least one category is required"
+        )
 
     profile = await get_profile_by_user(session, user.id)
     if profile is None:
@@ -83,7 +88,10 @@ async def upsert_customer_profile(
     session: AsyncSession, user: User, data: CustomerProfileIn
 ) -> CustomerProfile:
     if user.role != UserRole.CUSTOMER:
-        raise ForbiddenError("Only customers can manage a customer profile")
+        raise ForbiddenError(
+            "profiles.customer_only",
+            message="Only customers can manage a customer profile",
+        )
     profile = user.customer_profile
     if profile is None:
         profile = CustomerProfile(
@@ -110,5 +118,7 @@ async def delete_user(session: AsyncSession, user: User) -> None:
 async def get_profile_or_error(session: AsyncSession, user_id) -> SpecialistProfile:
     p = await get_profile_by_user(session, user_id)
     if p is None:
-        raise ConflictError("Specialist profile not created")
+        raise ConflictError(
+            "profiles.no_specialist_profile", message="Specialist profile not created"
+        )
     return p
